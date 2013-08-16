@@ -6,12 +6,9 @@ import webbrowser
 import subprocess
 import sys
 import random
-import socket
 import json
 from configobj import ConfigObj
-from pprint import pprint
-import ssl
-#import subprocess
+import requests
 
 parentdir = os.path.dirname(os.path.abspath(sys.argv[0]))
 sys.path.insert(0,parentdir)
@@ -20,7 +17,7 @@ mypath = os.path.normpath(os.path.dirname(os.path.abspath(sys.argv[0])))
 config = ConfigObj(os.path.join(mypath,'ClientSettings.cfg'))
 
 global masterserver
-masterserver = socket.socket()#ssl.wrap_socket(socket.socket(), ssl_version = ssl.PROTOCOL_SSLv3, cert_reqs = ssl.CERT_NONE)
+masterserver = None
 ms_connected = False
 servers = []
 
@@ -100,7 +97,7 @@ class CLI(cmd.Cmd):
     def do_connect(self, line):
         "Opens up the connection menu"
         global connect
-        print '\nConnection menu active.\nAvailable commands: ms_set, ms_connect, get_list, index_connect, direct_connect\n'
+        print '\nConnection menu active.\nAvailable commands: ms_set, get_list, index_connect, direct_connect\n'
         connect = True
 
     def do_page(self, line):
@@ -396,58 +393,41 @@ class CLI(cmd.Cmd):
 
 #masterserver_connect, get_list, number_connect, direct_connect
 
-    def do_ms_connect(self, line):
-        "Connects to a masterserver using the specified IP. Optionaly, you can pass 'default' to use the IP written in the ClientSettings.cfg file."
-        global connect
-        global config
-        global masterserver
-        global ms_connected
-        if connect == True:
-            if line.lower() == 'default':
-                IP = '192.168.1.4' #config['Connection']['default_ms_ip']
-            else:
-                IP = line
-            
-            #int_ip = socket.gethostbyname(socket.getfqdn())
-            
-            #try:
-            masterserver.connect(('192.168.1.4', 2000))
-            print 'Connected to master server through Internet'
-            print 'Master server IP: ' + str(IP)  + '    Port: 2000'
-            ms_connected = True
-            #except:
-            #    try:
-            #        masterserver.connect((int_ip, 2000))
-            #        print 'Connected to master server through LAN'  + '    Port: 2000'
-            #        ms_connected = True
-            #    except:
-            #        print 'Could not connect to master server.'
-            #        print 'Either the master server is down, or your network is not properly configured. Check your firewall and port 2000. Might be a NAT or a LAN problem as well. Cheers.'
-            #        ms_connected = False
-
     def do_get_list(self, line):
-        "Gets the server list from the masterserver. You must be connected to one in order for the command to work."
+        "Gets the server list from the masterserver."
         global connect
         global masterserver
         global ms_connected
         global servers
-        if connect == True and ms_connected == True:
-            masterserver.send('r')
+        if connect == True:
+            if line == 'default':
+                IP = config['Connection']['default_ms_ip']
+            else:
+                IP = line
             try:
-                msg = masterserver.recv(1024)
+                r = str(requests.get(str(IP)).text)
+                #print r
+                #    #print msg
+                #    #try:
+                print ''
+                y = 0
+                try:
+                    servers = json.loads(r)
+                    print '//////////////////////////////////////////////////////////////////'
+                    print '/Index|Name|Mapname:Gamemode|Currentplayers/Maxplayers|Passworded/'
+                    print '//////////////////////////////////////////////////////////////////'
+                    print ''
+                    for x in servers:
+                        #name, mapname, gamemode, currentplayers, maxplayers, passw, serverip = x
+                        print '%(name)s|%(mapname)s|%(gm)s|%(cp)d/%(mp)d|%(pass)s|%(ip)s' % \
+                        {'name':str(x[0]),'mapname':str(x[1]),'gm':x[2],'cp':x[3],'mp':x[4],'pass':str(x[5]),'ip':x[6]}
+                        #pprint((y, name, mapname, gamemode, currentplayers, '/', maxplayers, passw))
+                        y += 1
+                    print ''
+                except:
+                    print '\nThere are no public servers at the moment. Will YOU be daring enough to host one? Head to lasthazard.ohmnivore.elementfx.com for instructions.\n'
             except:
-                pass
-            #    #print msg
-            #    #try:
-            #y = 0
-            #servers = json.loads(msg)
-            #print '|Index:Name:Mapname:Gamemode:Currentplayers/Maxplayers:Passworded|'
-            #for x in servers:
-            #    name, mapname, gamemode, currentplayers, maxplayers, passw, serverip = x
-            #    pprint((y, name, mapname, gamemode, currentplayers, '/', maxplayers, passw))
-            #    y += 1
-                #except:
-                    #print '\nThere are no public servers at the moment. Will YOU be daring enough to host one? Head to lasthazard.ohmnivore.elementfx.com for instructions.\n'
+                print "\nWell heck, we can't get the server list. Either the master server is down, or your connection is the problem. Try visiting it from your browser.\n"
             #except:
                 #print "\nWell heck, we can't get the server list. The connection to the master server must have been lost, or it's a firewall problem.\n"
 

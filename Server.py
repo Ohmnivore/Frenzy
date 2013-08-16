@@ -22,13 +22,28 @@ from pymunk.vec2d import Vec2d
 from pymunk import Vec2d
 import json
 from configobj import ConfigObj
-import ssl
-from OpenSSL import SSL
 import time
 import cmd2 as cmd
 import datetime
-
+import atexit
 import os
+import requests
+
+#Windows-specific
+import win32api
+def cleanexit(lol):
+    running = False
+    server.disconnect_all()
+    t1._Thread__stop()
+    server_cmd._Thread__stop()
+    data = {'cmd': '-'}
+    if ms_public == True:
+        r = requests.post(config['Masterserver']['ms_ip'], data)
+
+win32api.SetConsoleCtrlHandler(cleanexit, True)
+#win32api.GenerateConsoleCtrlEvent(15, 0)
+
+atexit.register(cleanexit)
 def we_are_frozen():
     """Returns whether we are frozen via py2exe.
     This will affect how we find out where we are located."""
@@ -210,6 +225,9 @@ class CLI(cmd.Cmd):
                                 x.send_reliable_message(Disco)
                             del IPRegistry[key]
                             server.disconnect(key)
+                            data = {'cmd': '-p'}
+                            if ms_public == True:
+                                r = requests.post(config['Masterserver']['ms_ip'], data)
                     except:
                         pass
         except:
@@ -921,6 +939,9 @@ def custom_msghandler(sender, message):
                 #print len(RocketList)
                 #print 'lol'
         if message.MessageTypeID == PlayerInfo.MessageTypeID:
+            data = {'cmd': '+p'}
+            if ms_public == True:
+                r = requests.post(config['Masterserver']['ms_ip'], data)
             spawnpoint = my_map.spawns[random.randint(0, len(my_map.spawns)-1)]
             clientplayer = Playerz(from_pygame((spawnpoint.position_x+65, spawnpoint.position_y+65)), message.colour.value, message.name.value, 100, euclid.Vector2(0, 0))
 
@@ -1011,6 +1032,9 @@ def custom_msghandler(sender, message):
                         x.send_reliable_message(Disco)
                     del IPRegistry[sender.address]
                     sender.disconnect()
+                    data = {'cmd': '-p'}
+                    if ms_public == True:
+                        r = requests.post(config['Masterserver']['ms_ip'], data)
             except:
                 pass
         if message.MessageTypeID == ScoreboardRequest.MessageTypeID:
@@ -1026,6 +1050,14 @@ def custom_msghandler(sender, message):
                 Chatmessage.msg.value = str(message.msg.value)
                 Chatmessage.placeholder.value = message.placeholder.value
                 server.send_reliable_message_to_all(Chatmessage)
+
+#def custom_delhandler(sender, args):
+#    running = False
+#    server.disconnect_all()
+#    t1._Thread__stop()
+#    server_cmd._Thread__stop()
+#    data = {'cmd': '-'}
+#    r = requests.post('http://localhost:11080/server', data)
 
 legume.messages.message_factory.add(ArrowStatusMsg)
 legume.messages.message_factory.add(PwupStatus)
@@ -1073,33 +1105,41 @@ Passworded = False
 
 masterserver_ip = config['Masterserver']['ms_ip']
 #masterserver = socket.socket()
-masterserver = socket.socket()
 #masterserver = SSL.Connection(SSL.Context(SSL.SSLv3_METHOD), socket.socket())
 #masterserver.do_handshake_on_connect = True
-ms_connected = False
-try:
-    masterserver.connect((masterserver_ip, 2000))
-    #masterserver.do_handshake()
-    print 'Connected to master server through Internet'
-    print 'Master server IP: ' + str(masterserver_ip)  + '    Port: 2000'
-    ms_connected = True
-except:
-    try:
-        masterserver.connect((int_ip, 2000))
-        print 'Connected to master server through LAN'  + '    Port: 2000'
-        ms_connected = True
-    except:
-        print 'Could not connect to master server. Your game will not be visible on the server list.'
-        print 'Either the master server is down, or your network is not properly configured. Check your firewall and port 2000. Might be a NAT or a LAN problem as well. Cheers.'
+ms_public = True
+if config['Masterserver']['ms_visible'] == 'False':
+    #config['Masterserver']['ms_ip'] = ''
+    ms_public = False
+#try:
+#    masterserver.connect((masterserver_ip, 2000))
+#    #masterserver.do_handshake()
+#    print 'Connected to master server through Internet'
+#    print 'Master server IP: ' + str(masterserver_ip)  + '    Port: 2000'
+#    ms_connected = True
+#except:
+#    try:
+#        masterserver.connect((int_ip, 2000))
+#        print 'Connected to master server through LAN'  + '    Port: 2000'
+#        ms_connected = True
+#    except:
+#        print 'Could not connect to master server. Your game will not be visible on the server list.'
+#        print 'Either the master server is down, or your network is not properly configured. Check your firewall and port 2000. Might be a NAT or a LAN problem as well. Cheers.'
 
-if ms_connected == True:
-    #masterserver.setblocking(1)
-    #masterserver.do_handshake()
-    #masterserver.sendall('r')
-    masterserver.sendall('+' + json.dumps([ServerName, MapName, GameMode, CurrentPlayers, MaxPlayers, Passworded, 'lol'], -1))
+#if ms_connected == True:
+#    #masterserver.setblocking(1)
+#    #masterserver.do_handshake()
+#    #masterserver.sendall('r')
+#    masterserver.sendall('+' + json.dumps([ServerName, MapName, GameMode, CurrentPlayers, MaxPlayers, Passworded, 'lol'], -1))
+data = {'cmd': '+', 'info': json.dumps([ServerName, MapName, GameMode, CurrentPlayers, MaxPlayers, Passworded], -1)}
+#createdata = urllib.urlencode(data)
+#create = urllib2.Request('http://localhost:11080/server', createdata)
+if ms_public == True:
+    r = requests.post(config['Masterserver']['ms_ip'], data)
     #masterserver.sendall('a')
 
 server.OnMessage += custom_msghandler
+#server.OnDisconnect += custom_delhandler
 
 def disco_msghandler(sender, args):
     global space
@@ -1117,6 +1157,9 @@ def disco_msghandler(sender, args):
                 x.send_reliable_message(Disco)
             del IPRegistry[sender.address]
             sender.disconnect()
+            data = {'cmd': '-p'}
+            if ms_public == True:
+                r = requests.post(config['Masterserver']['ms_ip'], data)
     except:
         pass
         #masterserver.sendall('d')
@@ -1260,6 +1303,9 @@ while running:  # main game loop
         server.disconnect_all()
         t1._Thread__stop()
         server_cmd._Thread__stop()
+        data = {'cmd': '-'}
+        if ms_public == True:
+            r = requests.post(config['Masterserver']['ms_ip'], data)
 
 
 
