@@ -29,8 +29,6 @@ import atexit
 import os
 import requests
 
-#Windows-specific
-import win32api
 def cleanexit(lol):
     running = False
     server.disconnect_all()
@@ -40,10 +38,15 @@ def cleanexit(lol):
     if ms_public == True:
         r = requests.post(config['Masterserver']['ms_ip'], data)
 
-win32api.SetConsoleCtrlHandler(cleanexit, True)
-#win32api.GenerateConsoleCtrlEvent(15, 0)
+def cleanexit2():
+    running = False
+    server.disconnect_all()
+    t1._Thread__stop()
+    server_cmd._Thread__stop()
+    data = {'cmd': '-'}
+    if ms_public == True:
+        r = requests.post(config['Masterserver']['ms_ip'], data)
 
-atexit.register(cleanexit)
 def we_are_frozen():
     """Returns whether we are frozen via py2exe.
     This will affect how we find out where we are located."""
@@ -62,6 +65,18 @@ def module_path():
 
 mypath = module_path()
 config = ConfigObj(os.path.join(mypath,'ServerSettings.cfg'))
+
+#Windows-specific
+if config['OS'] == 'Windows':
+    import win32api
+    win32api.SetConsoleCtrlHandler(cleanexit, True)
+
+#Linux-specific
+if config['OS'] == 'Linux':
+    import signal
+    signal.signal(signal.SIGTERM, cleanexit)
+
+atexit.register(cleanexit2)
 
 global status
 global player

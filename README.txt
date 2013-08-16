@@ -22,6 +22,7 @@ Python dependencies:
 -*Pymunk
 -*ConfigObj
 -requests
+-*pywin32 (if you're running a server on Windows)
 
 *Starred dependencies are the ones required for the game client, the rest are optional features
 
