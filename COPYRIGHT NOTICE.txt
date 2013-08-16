@@ -1,0 +1,13 @@
+<Last Hazard on the Moon - creative commons online multiplayer game>
+Copyright (C) <2013>  <Mark Beiline>
+
+You can reach me at ohmnivore@gmail.com
+or ohmnivore.elementfx.com
+
+This work is licensed under the Creative Commons Attribution-NonCommercial 3.0 Unported License. 
+To view a copy of this license, visit 
+http://creativecommons.org/licenses/by-nc/3.0/
+
+In short, you need to attribute the original work to me, and you can't
+use it for commercial purposes. It's free otherwise. Ask me for exceptions
+to this license.

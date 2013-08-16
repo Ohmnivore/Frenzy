@@ -1,0 +1,200 @@
+#:kivy 1.6
+
+<Controller>:
+    container: containeritem
+    menu: menuitem
+    Accordion:
+        anim_func: 'linear'
+        font_name: 'ElectricCity.ttf'
+        orientation: 'vertical'
+
+        AccordionItem:
+            title: 'Block options'
+            collapse: False
+            AnchorLayout:
+                anchor_y: 'top'
+                id: containeritem
+        AccordionItem:
+            title: 'Menu'
+            id: menuitem
+
+        AccordionItem:
+            title: 'Help'
+            RstDocument:
+                font_name: 'ElectricCity.ttf'
+                text: "Press the mouse button to toggle the grid\n\nUse the mouse wheel to zoom in or out\n\nLeft click to place block\n\nLeft click an existing block to select it\n\nRight click to change blocks\n\nRight click and drag a selected block to reposition it\n\nPress backspace to delete the selected block\n\nPress space to toggle the preview of moving blocks"
+
+<MenuView>:
+    BoxLayout:
+        orientation: 'vertical'
+        Button:
+            font_name: 'ElectricCity.ttf'
+            text: 'Save map'
+            on_press: root.HandleInput(self.text)
+        Button:
+            font_name: 'ElectricCity.ttf'
+            text: 'Test map in offline mode'
+            on_press: root.HandleInput(self.text)
+        Button:
+            font_name: 'ElectricCity.ttf'
+            text: 'Quit editor'
+            on_press: root.HandleInput(self.text)
+
+<PowerupView>:
+    heal: healid
+    speed: speedid
+    shield: shieldid
+
+    anchor_y: 'top'
+    current_checkbox: self.current_checkbox
+
+    BoxLayout:
+        BoxLayout:
+            CheckBox:
+                group: 'Powerups'
+                active: True
+                on_active: root.current_checkbox = 'Heal'
+                id: healid
+            Label:
+                font_name: 'ElectricCity.ttf'
+                text: 'Heal'
+        BoxLayout:
+            CheckBox:
+                group: 'Powerups'
+                on_active: root.current_checkbox = 'Speed'
+                id: speedid
+            Label:
+                font_name: 'ElectricCity.ttf'
+                text: 'Speed'
+        BoxLayout:
+            CheckBox:
+                group: 'Powerups'
+                on_active: root.current_checkbox = 'Shield'
+                id: shieldid
+            Label:
+                font_name: 'ElectricCity.ttf'
+                text: 'Shield'
+
+<SpawnView>:
+    biohazard: biohazardid
+    nuclear: nuclearid
+    current_checkbox: self.current_checkbox
+    BoxLayout:
+        BoxLayout:
+            CheckBox:
+                group: 'Teams'
+                active: True
+                id: biohazardid
+                on_active: root.current_checkbox = 'Bio-hazard'
+            Label:
+                font_name: 'ElectricCity.ttf'
+                text: 'Bio-hazard'
+        BoxLayout:
+            CheckBox:
+                group: 'Teams'
+                id: nuclearid
+                on_active: root.current_checkbox = 'Nuclear'
+            Label:
+                font_name: 'ElectricCity.ttf'
+                text: 'Nuclear'
+
+<MoveView>:
+    speed: speedid
+    length: lengthid
+    offset: offsetid
+    speedcounter: speedcid
+    lengthcounter: lengthcid
+    offsetcounter: offsetcid
+    xselect: xselectid
+    yselect: yselectid
+    BoxLayout:
+        height: 20
+        pos: (0,310)
+        orientation: 'horizontal'
+        size_hint: (1, 0.2)
+        ToggleButton:
+            on_press: root.updatex()
+            id: xselectid
+            #height: 20
+            #pos: (0,100)
+            group: 'axis'
+            font_name: 'ElectricCity.ttf'
+            text: 'X'
+        ToggleButton:
+            on_press: root.updatey()
+            id: yselectid
+            #height: 20
+            #pos: (0,100)
+            group: 'axis'
+            font_name: 'ElectricCity.ttf'
+            text: 'Y'
+
+    BoxLayout:
+        width: 20
+        pos: (0,66)
+        orientation: 'vertical'
+        GridLayout:
+            cols: 3
+            Label:
+                font_name: 'ElectricCity.ttf'
+                text: 'Length'
+            Slider:
+                on_touch_move: root.updatenumbers()
+                on_touch_up: root.updatenumbers()
+                on_touch_down: root.updatenumbers()
+                id: lengthid
+                step: 5
+            Label:
+                font_name: 'ElectricCity.ttf'
+                text: '0'
+                id: lengthcid
+            Label:
+                font_name: 'ElectricCity.ttf'
+                text: 'Speed'
+            Slider:
+                on_touch_move: root.updatenumbers()
+                on_touch_up: root.updatenumbers()
+                on_touch_down: root.updatenumbers()
+                id: speedid
+                step: 5
+            Label:
+                font_name: 'ElectricCity.ttf'
+                text: '0'
+                id: speedcid
+            Label:
+                font_name: 'ElectricCity.ttf'
+                text: 'Offset'
+            Slider:
+                on_touch_move: root.updatenumbers()
+                on_touch_up: root.updatenumbers()
+                on_touch_down: root.updatenumbers()
+                id: offsetid
+                step: 5
+            Label:
+                font_name: 'ElectricCity.ttf'
+                text: '0'
+                id: offsetcid
+
+[AccordionItemTitle@Label]:
+    font_name: 'ElectricCity.ttf'
+    text: ctx.title
+    canvas.before:
+        Color:
+            rgb: 1, 1, 1
+        BorderImage:
+            source:
+                ctx.item.background_normal \
+                if ctx.item.collapse \
+                else ctx.item.background_selected
+            pos: self.pos
+            size: self.size
+        PushMatrix
+        Translate:
+            xy: self.center_x, self.center_y
+        Rotate:
+            angle: 90 if ctx.item.orientation == 'horizontal' else 0
+            axis: 0, 0, 1
+        Translate:
+            xy: -self.center_x, -self.center_y
+    canvas.after:
+        PopMatrix
