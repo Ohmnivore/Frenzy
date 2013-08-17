@@ -15,14 +15,9 @@ TODO - NAT punch-through for true online
        Redo powerups graphics
 
 Python dependencies:
--*Python 2.7
--*PyGame 1.9.2
--Cmd2, but you can edit the import to run Cmd instead (Cmd is in the standard library)
--Kivy
--*Pymunk
--*ConfigObj
--requests
--*pywin32 (if you're running a server on Windows)
+-You don't need 'nothing if you're running the Windows branch on a Windows machine!
+-P.S.: If you're running linux and don't want to install all the python dependancies,
+       then run the windows build in Wine 
 
 *Starred dependencies are the ones required for the game client, the rest are optional features
 
