@@ -140,12 +140,12 @@ class CLI(cmd.Cmd):
         if mapping == True:
             config['Map']['map'] = line + '.txt'
             self.save_config()
-            try:
-                #subprocess.Popen([os.path.join(mypath, 'Client.py')])
-                os.system('python ' + os.path.join(mypath, 'MapTest.py'))
-            except:
-                print '\nCould not start the map tester application\n'
-            #subprocess.Popen([os.path.join(mypath, 'MapTest.exe')])
+            #try:
+            #    #subprocess.Popen([os.path.join(mypath, 'Client.py')])
+            #    #os.system('python ' + os.path.join(mypath, 'MapTest.py'))
+            #except:
+            #    print '\nCould not start the map tester application\n'
+            subprocess.Popen([os.path.join(mypath, 'MapTest.exe')])
 
     def do_edit(self, line):
         "Launches the map editor to edit the specified map"
@@ -154,13 +154,13 @@ class CLI(cmd.Cmd):
         if mapping == True:
             config['Map']['map'] = line + '.txt'
             self.save_config()
-            try:
-                #subprocess.Popen([os.path.join(mypath, 'Client.py')])
-                #os.popen('python ' + os.path.join(mypath, 'MapEditorGUI.py'))
-                os.system('python ' + os.path.join(mypath, 'MapEditorGUI.py'))
-            except:
-                print '\nCould not start the map editor application\n'
-            #subprocess.Popen([os.path.join(mypath, 'MapEditorGUI.exe')])
+            #try:
+            #    #subprocess.Popen([os.path.join(mypath, 'Client.py')])
+            #    #os.popen('python ' + os.path.join(mypath, 'MapEditorGUI.py'))
+            #    #os.system('python ' + os.path.join(mypath, 'MapEditorGUI.py'))
+            #except:
+            #    print '\nCould not start the map editor application\n'
+            subprocess.Popen([os.path.join(mypath, 'MapEditorGUI.exe')])
 
     def do_create(self, line):
         "Creates a new empty map with the specified name"
@@ -441,7 +441,7 @@ class CLI(cmd.Cmd):
             try:
                 config['Connection']['server_ip'] = servers[int(line)][6]
                 try:
-                    os.system('python ' + os.path.join(mypath, 'Client.py'))
+                    subprocess.Popen([os.path.join(mypath, 'Client.exe')])
                     #subprocess.Popen([os.path.join(mypath, 'Client.py')])
                     #os.popen('python ' + os.path.join(mypath, 'Client.py'))
                 except:
@@ -457,7 +457,7 @@ class CLI(cmd.Cmd):
             config['Connection']['server_ip'] = line
             try:
                 #subprocess.Popen([os.path.join(mypath, 'Client.py')])
-                os.system('python ' + os.path.join(mypath, 'Client.py'))
+                subprocess.Popen([os.path.join(mypath, 'Client.exe')])
             except:
                 print '\nCould not start the client application\n'
 

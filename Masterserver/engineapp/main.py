@@ -16,11 +16,27 @@
 #
 import webapp2
 import json
+from google.appengine.ext import db
 
 ServerList = []
 IPRegistry = {}
+ServerListQuick = []
+IPRegistryQuick = {}
 text = ''
 debug = 0
+
+class Server(db.Model):
+    name = db.StringProperty(required=True)
+    mapname = db.StringProperty(required=True)
+    gamemode = db.StringProperty(required=True,
+                           choices=set(["DM", "TDM", "Z", "KOTH", "J"]))
+    cp = db.IntegerProperty(required=True)
+    mp = db.IntegerProperty(required=True)
+    passworded = db.BooleanProperty(required=True)
+    address = db.StringProperty()
+
+class ServerQuick(db.Model):
+    x=db.StringProperty(required=True)
 
 def Truthify(boolean):
     try:
@@ -96,6 +112,11 @@ class ServerHandler(webapp2.RequestHandler):
                     x.append(ip)
                     IPRegistry[ip] = x
                     ServerList.append(IPRegistry[ip])
+                    server = ServerQuick()
+                    server.x = x
+                    server.put()
+                    ServerListQuick.append(server)
+                    IPRegistryQuick[ip] = server
                 except:
                     pass
         if cmd == '-':

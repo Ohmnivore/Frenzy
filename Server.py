@@ -14,8 +14,8 @@ import traceback
 import threading
 from os import walk
 import zlib, base64
-parentdir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0,parentdir)
+#parentdir = os.path.dirname(os.path.abspath(__file__))
+#sys.path.insert(0,parentdir)
 import urllib2, socket
 import pymunk
 from pymunk.vec2d import Vec2d
@@ -28,24 +28,6 @@ import datetime
 import atexit
 import os
 import requests
-
-def cleanexit(lol):
-    running = False
-    server.disconnect_all()
-    t1._Thread__stop()
-    server_cmd._Thread__stop()
-    data = {'cmd': '-'}
-    if ms_public == True:
-        r = requests.post(config['Masterserver']['ms_ip'], data)
-
-def cleanexit2():
-    running = False
-    server.disconnect_all()
-    t1._Thread__stop()
-    server_cmd._Thread__stop()
-    data = {'cmd': '-'}
-    if ms_public == True:
-        r = requests.post(config['Masterserver']['ms_ip'], data)
 
 def we_are_frozen():
     """Returns whether we are frozen via py2exe.
@@ -65,6 +47,27 @@ def module_path():
 
 mypath = module_path()
 config = ConfigObj(os.path.join(mypath,'ServerSettings.cfg'))
+
+def cleanexit(lol):
+    running = False
+    server.disconnect_all()
+    t1._Thread__stop()
+    server_cmd._Thread__stop()
+    data = {'cmd': '-'}
+    if ms_public == True:
+        r = requests.post(config['Masterserver']['ms_ip'], data)
+
+def cleanexit2():
+    running = False
+    server.disconnect_all()
+    t1._Thread__stop()
+    server_cmd._Thread__stop()
+    data = {'cmd': '-'}
+    if ms_public == True:
+        r = requests.post(config['Masterserver']['ms_ip'], data)
+
+#if hasattr(sys,"frozen") and sys.frozen in ("windows_exe", "console_exe"):
+#    mypath=jpath.path(os.path.abspath(sys.executable)).dirname()
 
 #Windows-specific
 if config['OS'] == 'Windows':
@@ -115,14 +118,14 @@ class FetchUrls(threading.Thread):
 class CLI(cmd.Cmd):
     """Command line interface for FRENZY server."""
 
-    status = False
-    player = False
-    mapmenu = False
-    options = False
+    status = True
+    player = True
+    mapmenu = True
+    options = True
 
     prompt = ''
     
-    intro = "\n*Welcome to the frenzy server command line interface*\nType menu or help to get started\nUse menu, status, player, map, and options to get around\nCommands called outside of their menu's scope will not be executed\n"
+    intro = "\n*Welcome to the frenzy server command line interface*\nType menu or help to get started\nUse menu, status, player, map, and options to get around\n"
 
     def save_config(self):
         cfg = ConfigObj(os.path.join(mypath,'ServerSettingsDefault.cfg'))
@@ -133,10 +136,10 @@ class CLI(cmd.Cmd):
         "Returns to main menu"
         global web, connect, custom, mapping, credit, setting
         print '\nMain menu active.\nAvailable menus: status, player, map, options\n'
-        status = False
-        player = False
-        mapmenu = False
-        options = False
+        status = True
+        player = True
+        mapmenu = True
+        options = True
 
     def do_status(self, line):
         "Opens up the server status menu"
