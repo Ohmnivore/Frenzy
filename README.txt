@@ -5,14 +5,13 @@ INSTRUCTIONS
 This branch is the python source code, and is the most up to date at all times. 
 There is also a Windows branch, but source is always better.
 
-Current version - 0.7.3 (!Beta!)
+Current version - 0.8.4 (!Beta!)
                   2nd digit represents the version of the client program
                   3rd digit represents the version of the server program
                   As a player, you should try to keep up to date with the 2nd digit
                   As a server host, you should keep up to date with the 3rd digit
 
-TODO - NAT punch-through for true online
-       Redo powerups graphics
+TODO - Redo powerups graphics
 
 Python dependencies:
 -*Python 2.7
@@ -22,7 +21,7 @@ Python dependencies:
 -*Pymunk
 -*ConfigObj
 -requests
--*pywin32 (if you're running a server on Windows)
+-pywin32 (if you're running a server on Windows)
 
 *Starred dependencies are the ones required for the game client, the rest are optional features
 
@@ -35,18 +34,13 @@ ClientSettings.cfg - game client settings (faster than using CLIENTCLI.py)
 ServerSettings.cfg - not a lot of options yet, but the essential ones are there
 
 Notes - Master server is ONLINE! at http://frenzyms.appspot.com/
+        ...but I still need to implement permanent storing with the Google datastore
         The server can't change maps yet (annoying threading problems)
-        NAT punch-through isn't yet implemented (most external connections won't work)
-	Try port forwarding (6385) or pwnat (Windows exe included)
-                                            (Linux users should install it themselves)
-                                            (pwnut source+makefile is included)
         On my LAN the ping is as low as 1ms. Average is around 5ms. Pretty sweet.
         Moving platforms do not move yet
 
-NAT - If you happen to be behind a NAT, there are a couple of options here. You can try
-      port forwarding (6385) or you can run pwnat yourself until I integrate it myself.
-      Even then it might still not work. From what I've gathered NAT traversal is some
-      nasty business.
+NAT - If you happen to be behind a NAT, and want to host a server, then forward port 6385. 
+      This is basicaly the same thing you would do for any other online game like TF2 and such.
 
 Maps contains all the maps created with the map editor. To edit one it must be in that folder.
 Backgrounds contains all the backgrounds. You can add your own, but it must be tileable
