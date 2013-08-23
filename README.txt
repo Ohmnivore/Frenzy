@@ -5,7 +5,7 @@ INSTRUCTIONS
 This branch is the python source code, and is the most up to date at all times. 
 There is also a Windows branch, but source is always better.
 
-Current version - 0.8.4 (!Beta!)
+Current version - 0.8.5 (!Beta!)
                   2nd digit represents the version of the client program
                   3rd digit represents the version of the server program
                   As a player, you should try to keep up to date with the 2nd digit
@@ -34,9 +34,10 @@ ClientSettings.cfg - game client settings (faster than using CLIENTCLI.py)
 ServerSettings.cfg - not a lot of options yet, but the essential ones are there
 
 Notes - Master server is ONLINE! at http://frenzyms.appspot.com/
-        ...but I still need to implement permanent storing with the Google datastore
         The server can't change maps yet (annoying threading problems)
         On my LAN the ping is as low as 1ms. Average is around 5ms. Pretty sweet.
+        That's because I'm hosting on a crappy laptop and running a client at the same time though.
+        It could be even faster.
         Moving platforms do not move yet
 
 NAT - If you happen to be behind a NAT, and want to host a server, then forward port 6385. 
