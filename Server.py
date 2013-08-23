@@ -1,5 +1,5 @@
 #!/usr/bin/env python2.7
-# Last Hazard on the Moon (A 2D Online Myltiplayer Platformer Shooter for Android --- yeah, it's that cool)
+# Frenzy (A 2D Online Myltiplayer Platformer Shooter for Android --- yeah, it's that cool)
 # By Mark Beiline ohmnivore.elementfx.com
 # Created with PyGame
 
@@ -440,6 +440,7 @@ pygame.key.set_repeat(1, 8)
 
 posix = 0
 lock = threading.Lock()
+heartbeat = 0
 
 space = pymunk.Space()
 space.gravity = (0.0, -700.0)
@@ -892,12 +893,12 @@ print 'Public IP: ' + pub_ip
 int_ip = socket.gethostbyname(socket.getfqdn())
 print 'Internal IP: ' + int_ip
 server = legume.Server()
-try:
-    server.listen((str(config['Connection']['bind_IP']), 6385))
-    print 'Connected to: ' + str(config['Connection']['bind_IP']) + '    Port: 6385'
-except:
-    server.listen((int_ip, 6385))
-    print 'Connected to: ' + str(int_ip) + '    Port: 6385'
+#try:
+server.listen((str(config['Connection']['bind_IP']), 6385))
+print 'Connected to: ' + str(config['Connection']['bind_IP']) + '    Port: 6385'
+#except:
+#    server.listen((int_ip, 6385))
+#    print 'Connected to: ' + str(int_ip) + '    Port: 6385'
 
 t1 = FetchUrls(server)
 t1.start()
@@ -1219,7 +1220,12 @@ while running:  # main game loop
         dfps = 50/(FPSCLOCK.get_fps() + 0.001)
         if dfps > 2:
             dfps = 2
-    
+
+        heartbeat += dtime
+        if ms_public == True:
+            if heartbeat > 90:
+                data = {'cmd': 'h'}
+                r = requests.post(config['Masterserver']['ms_ip'], data)
         #for s in my_map.powerups:
         #    if s.mode == 2:
         #        sx, sy = s.position_x + 51, s.position_y + 51

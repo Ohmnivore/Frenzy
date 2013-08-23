@@ -1,5 +1,5 @@
 #!/usr/bin/env python2.7
-# Last Hazard on the Moon (A 2D Online Myltiplayer Platformer Shooter for Android --- yeah, it's that cool)
+# Frenzy (A 2D Online Myltiplayer Platformer Shooter for Android --- yeah, it's that cool)
 # By Mark Beiline ohmnivore.elementfx.com
 # Created with PyGame
 

@@ -28,7 +28,7 @@ class SampleMessage(legume.messages.BaseMessage):
 
 client = legume.Client()
 client.connect((open(os.path.join(mypath, 'ClientIP.txt'), 'r').read(), 6385))
-
+#print client.socket.getaddrinfo()
 legume.messages.message_factory.add(SampleMessage)
 
 clientold = False
