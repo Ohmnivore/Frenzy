@@ -1468,12 +1468,12 @@ PlayerInfos.ability.value = str(my_player.ability)
 
 serverconnecttimecounter = 0
 
-while client.connected != True and serverconnecttimecounter < 30:
+while client.connected != True and serverconnecttimecounter < 200:
     pygame.time.wait(100)
     client.update()
     serverconnecttimecounter += 1
-    if serverconnecttimecounter == 30:
-        print 'Could not connect to server after 3 seconds'
+    if serverconnecttimecounter == 200:
+        print 'Could not connect to server after 20 seconds'
 
 t1 = FetchUrls(client)
 t1.start()

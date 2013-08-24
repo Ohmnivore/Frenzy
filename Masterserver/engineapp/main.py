@@ -6,6 +6,7 @@ import json
 import datetime
 import re
 from google.appengine.ext import ndb as db
+#from google.appengine.ext import deferred
 
 ServerList = []
 IPRegistry = {}

@@ -5,13 +5,15 @@ INSTRUCTIONS
 This branch is the python source code, and is the most up to date at all times. 
 There is also a Windows branch, but source is always better.
 
-Current version - 0.8.5 (!Beta!)
+Current version - 0.9.5 (!Beta!)
                   2nd digit represents the version of the client program
                   3rd digit represents the version of the server program
                   As a player, you should try to keep up to date with the 2nd digit
                   As a server host, you should keep up to date with the 3rd digit
 
 TODO - Redo powerups graphics
+     - Fix map rotation
+     - Moving platforms (I might actually give up on this one)
 
 Python dependencies:
 -*Python 2.7
