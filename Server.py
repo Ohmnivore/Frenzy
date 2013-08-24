@@ -1224,6 +1224,7 @@ while running:  # main game loop
         heartbeat += dtime
         if ms_public == True:
             if heartbeat > 90:
+                heartbeat = 0
                 data = {'cmd': 'h'}
                 r = requests.post(config['Masterserver']['ms_ip'], data)
         #for s in my_map.powerups:
