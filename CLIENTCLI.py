@@ -394,12 +394,14 @@ class CLI(cmd.Cmd):
 #masterserver_connect, get_list, number_connect, direct_connect
 
     def do_get_list(self, line):
-        "Gets the server list from the masterserver."
+        "Gets the server list from the masterserver. You can specify the address or pass in 'default' as argument to use the value stored in ClientConfig.cfg."
         global connect
         global masterserver
         global ms_connected
         global servers
         if connect == True:
+            if len(line) == 0:
+                print "Please specify an address from which to fetch the list, or pass in 'default' as argument to use the value stored in ClientConfig.cfg."
             if line == 'default':
                 IP = config['Connection']['default_ms_ip']
             else:
