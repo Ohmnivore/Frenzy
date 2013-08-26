@@ -124,17 +124,29 @@ class ServerHandler(webapp2.RequestHandler):
             #server = IPRegistry[ip].get()
             server = query.get()
             server.delete()
-        if cmd == '+p':
+        if cmd == 'p':
             query = Server.gql("WHERE address = :1", ip)
             server = query.get()
-            #server = IPRegistry[ip].get()
-            server.cp += 1
+            if int(self.request.get('info')) <= 100:
+                server.cp = int(self.request.get('info'))
             server.put()
-        if cmd == '-p':
+        #if cmd == '+p':
+        #    query = Server.gql("WHERE address = :1", ip)
+        #    server = query.get()
+        #    #server = IPRegistry[ip].get()
+        #    server.cp += 1
+        #    server.put()
+        #if cmd == '-p':
+        #    query = Server.gql("WHERE address = :1", ip)
+        #    #server = IPRegistry[ip].get()
+        #    server = query.get()
+        #    server.cp -= 1
+        #    server.put()
+        if cmd == 'm':
             query = Server.gql("WHERE address = :1", ip)
-            #server = IPRegistry[ip].get()
             server = query.get()
-            server.cp -= 1
+            if len(re.sub(r'[^\w]', '', self.request.get('info'))) <= 20:
+                server.mapname = re.sub(r'[^\w]', '', self.request.get('info'))
             server.put()
         if cmd == 'h':
             query = Server.gql("WHERE address = :1", ip)

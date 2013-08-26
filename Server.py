@@ -111,9 +111,12 @@ class FetchUrls(threading.Thread):
         """
         Thread run method. Check URLs one by one.
         """
-        while self.connection:
-            self.connection.update()
-            time.sleep(0.0001)
+        try:
+            while self.connection:
+                self.connection.update()
+                time.sleep(0.0001)
+        except:
+            pass
 
 class CLI(cmd.Cmd):
     """Command line interface for FRENZY server."""
@@ -243,7 +246,8 @@ class CLI(cmd.Cmd):
                                 x.send_reliable_message(Disco)
                             del IPRegistry[key]
                             server.disconnect(key)
-                            data = {'cmd': '-p'}
+                            CurrentPlayers = len(PlayerList)
+                            data = {'cmd': 'p', 'info': CurrentPlayers}
                             if ms_public == True:
                                 r = requests.post(config['Masterserver']['ms_ip'], data)
                     except:
@@ -274,17 +278,19 @@ class CLI(cmd.Cmd):
 
     def do_rotation(self, line):
         "Shows current map rotation and indicates the current map."
-        print '\n'
-        global MapName
+        print ''
+        global MapName, ServerRotation
         for mapnamez in ServerRotation:
             x = mapnamez[:-4]
             if x == MapName:
                 print '> ' + MapName
             else:
                 print x
+        print ''
 
     def do_update_maps(self, line):
         "Updates the map rotation. Use this if you modify the 'Server rotation' directory while the server is running for changes to take effect."
+        global ServerRotation, mypath
         ServerRotation = []
         for (dirpath, dirnames, filenames) in walk(os.path.join(mypath, 'Server rotation')):
             ServerRotation.extend(filenames)
@@ -292,78 +298,10 @@ class CLI(cmd.Cmd):
 
     def do_set(self, line):
         "Changes the current map to the specified one."
-        #try:
-        global MapName
-        global my_map, ServerRotation, PlayerList, space, posix
-        found = False
-        posix = 0
-        for x in ServerRotation:
-            if line == x[:-4]:
-                MapName = line
-                found = True
-                #print pos
-                break
-            posix += 1
-        if found == False:
-            print "\nCould not find the specified map in the 'Server rotation' directory. Make sure you call 'update_maps' if you have modified its contents.\n"
-        if found == True:
-            #with lock:
-                #print posix
-                #Send new map
-            ServerRotation = []
-            for (dirpath, dirnames, filenames) in walk(os.path.join(mypath, 'Server rotation')):
-                ServerRotation.extend(filenames)
-                break
-            my_map.spawns = []
-            my_map.spawnlist = []
-            space = pymunk.Space()
-            space.gravity = (0.0, -700.0)
-            space.collision_slop = 0.0001
-            space.collision_bias = pow(1.0-0.1, 120.0)
-            for platform in my_map.platforms:
-                space.remove(platform.shape)
-            for platform in my_map.movingplatforms:
-                space.remove(platform.shape)
-            for platform in my_map.poweruplist:
-                space.remove(platform.shape)
-            MapName = str(ServerRotation[0][0:-4])
-            MapInfos = MapInfo()
-            mapopened = open(os.path.join(mypath, 'Server rotation', ServerRotation[0]), 'r').read()
-            mapstring = base64.b64encode(zlib.compress(json.dumps(pickle.loads(mapopened)),9))
-            my_mapz = Map(str(ServerRotation[0][0:-4]), mapopened)
-            my_map = my_mapz
-            numberchunks = len(mapstring)/((len(mapstring)/1200) + 1)
-            chunk = 0
-            chunkedmapstring = [''.join(x) for x in zip(*[list(mapstring[z::numberchunks]) for z in range(numberchunks)])]
-
-            for player in PlayerList:
-                player.deaths = 0
-                player.kills = 0
-                player.score = 0
-                space.remove(player.body, player.shape)
-                spawnpoint = my_map.spawns[random.randint(0, len(my_map.spawns)-1)]
-                player.body = pymunk.Body(1, pymunk.inf)
-                player.body.position = from_pygame((spawnpoint.position_x+65, spawnpoint.position_y+65))
-                player.shape = pymunk.Poly(player.body, [(0,40), (40,40), (40,0), (0,0)])
-                player.shape.friction = 0.1
-                player.shape.elasticity = 0.0
-                space.add(player.body, player.shape)
-
-            while chunk + 1 <= (len(mapstring)/1200) + 1:
-                MapInfos.chunks.value = (len(mapstring)/1200) + 1
-                MapInfos.chunk.value = chunk
-                MapInfos.map.value = chunkedmapstring[chunk]
-                MapInfos.name.value = str(ServerRotation[0])
-                server.send_reliable_message_to_all(MapInfos)
-                chunk += 1
-            chunk = 0
-
-            for platform in my_map.activepowerups:
-                PwupMsg.id.value = my_map.powerups.index(platform)
-                PwupMsg.active.value = True
-                server.send_reliable_message_to_all(PwupMsg)
-        #except:
-        #    print "\nCould not find the specified map in the 'Server rotation' directory. Make sure you call 'update_maps' if you have modified its contents.\n"
+        #ChangeMap(line)
+        global changemap
+        changemap = line
+        changemap2 = line
 
 class ServerCLI(threading.Thread):
     """
@@ -387,6 +325,108 @@ class ServerCLI(threading.Thread):
             CLI().onecmd(' '.join(sys.argv[1:]))
         else:
             CLI().cmdloop()
+
+def ChangeMap(themap):
+    "Changes the current map to the specified one."
+    #try:
+    #with lock:
+    global MapName
+    global posix
+    global my_map, ServerRotation, PlayerList, space, posix, groups, Chatmessage
+    groups = 1
+    found = False
+    posix = 0
+    for x in ServerRotation:
+        if themap == x[:-4]:
+            MapName = themap
+            found = True
+            #print pos
+            break
+        posix += 1
+    if found == False:
+        print "\nCould not find the specified map in the 'Server rotation' directory. Make sure you call 'update_maps' if you have modified its contents.\n"
+    if found == True:
+        #with lock:
+            #print posix
+            #Send new map
+        ServerRotation = []
+        for (dirpath, dirnames, filenames) in walk(os.path.join(mypath, 'Server rotation')):
+            ServerRotation.extend(filenames)
+            break
+        #my_map.spawns = []
+        #my_map.spawnlist = []
+        space = pymunk.Space()
+        space.gravity = (0.0, -700.0)
+        space.collision_slop = 0.0001
+        space.collision_bias = pow(1.0-0.1, 120.0)
+        #try:
+        #    for platform in my_map.platforms:
+        #        try:
+        #            space.remove(platform.shape)
+        #        except:
+        #            pass
+        #    for platform in my_map.movingplatforms:
+        #        space.remove(platform.shape)
+        #    for platform in my_map.poweruplist:
+        #        space.remove(platform.shape)
+        #except:
+        #    pass
+        MapName = str(ServerRotation[posix][0:-4])
+        print "Changed map to: " + MapName + '\n'
+        data = {'cmd': 'm', 'info': MapName}
+        if ms_public == True:
+            r = requests.post(config['Masterserver']['ms_ip'], data)
+        #Chatmessage.id.value = 0
+        #Chatmessage.msg.value = str("  Changed map to: " + MapName)
+        #Chatmessage.placeholder.value = 100
+        #server.send_reliable_message_to_all(Chatmessage)
+        MapInfos = MapInfo()
+        mapopened = open(os.path.join(mypath, 'Server rotation', ServerRotation[posix]), 'r').read()
+        mapstring = base64.b64encode(zlib.compress(json.dumps(pickle.loads(mapopened)),9))
+        #my_mapz = Map(str(ServerRotation[posix][0:-4]), mapopened)
+        my_map = Map(str(ServerRotation[posix][0:-4]), mapopened)
+        numberchunks = len(mapstring)/((len(mapstring)/1200) + 1)
+        chunk = 0
+        chunkedmapstring = [''.join(x) for x in zip(*[list(mapstring[z::numberchunks]) for z in range(numberchunks)])]
+
+        for player in PlayerList:
+            player.deaths = 0
+            player.kills = 0
+            player.score = 0
+            #space.remove(player.body, player.shape)
+            spawnpoint = my_map.spawns[random.randint(0, len(my_map.spawns)-1)]
+            player.body = pymunk.Body(1, pymunk.inf)
+            player.body.position = from_pygame((spawnpoint.position_x+65, spawnpoint.position_y+65))
+            player.shape = pymunk.Poly(player.body, [(0,40), (40,40), (40,0), (0,0)])
+            player.shape.friction = 0.1
+            player.shape.elasticity = 0.0
+            player.shape.group = groups
+            groups += 1
+            space.add(player.body, player.shape)
+            player.cacheddamage = 700 + player.damage * 25
+            player.cachedvelocity = 15 + player.weaponvelocity
+            player.cachedreloadspeed = 1500 - player.reloadspeed * 50
+            player.cachedarmor = player.armor * 0.03
+            player.cachedspeed = 1 + player.speed * 0.1
+            player.cachedenergy = 0.1 + player.energy * 0.1
+
+        while chunk + 1 <= (len(mapstring)/1200) + 1:
+            MapInfos.chunks.value = (len(mapstring)/1200) + 1
+            MapInfos.chunk.value = chunk
+            MapInfos.map.value = chunkedmapstring[chunk]
+            MapInfos.name.value = str(ServerRotation[posix])
+            server.send_reliable_message_to_all(MapInfos)
+            chunk += 1
+        chunk = 0
+
+        for platform in my_map.activepowerups:
+            PwupMsg.id.value = my_map.powerups.index(platform)
+            PwupMsg.active.value = True
+            server.send_reliable_message_to_all(PwupMsg)
+        Chatmessage.id.value = 0
+        Chatmessage.msg.value = str("  Changed map to: " + MapName)
+        Chatmessage.placeholder.value = 100
+        server.send_reliable_message_to_all(Chatmessage)
 
 server_cmd = ServerCLI()
 server_cmd.start()
@@ -439,8 +479,11 @@ moving = False
 pygame.key.set_repeat(1, 8)
 
 posix = 0
-lock = threading.Lock()
+lock = threading.RLock()
 heartbeat = 0
+changemap = ''
+changemap2 = ''
+maptimer = 0
 
 space = pymunk.Space()
 space.gravity = (0.0, -700.0)
@@ -933,6 +976,8 @@ def custom_msghandler(sender, message):
         global idref
         global space
         global masterserver
+        global posix
+        global my_map
         if message.MessageTypeID == ArrowStatusMsg.MessageTypeID:
             received_message = str(message.arrows.value)
             #print sender.last_packet_sent_at
@@ -958,9 +1003,12 @@ def custom_msghandler(sender, message):
                 #print len(RocketList)
                 #print 'lol'
         if message.MessageTypeID == PlayerInfo.MessageTypeID:
-            data = {'cmd': '+p'}
-            if ms_public == True:
-                r = requests.post(config['Masterserver']['ms_ip'], data)
+            mapstring = base64.b64encode(zlib.compress(json.dumps(pickle.loads(open(os.path.join(mypath, 'Server rotation', ServerRotation[posix]), 'r').read())),9))
+            my_map = Map(str(ServerRotation[posix][0:-4]), open(os.path.join(mypath, 'Server rotation', ServerRotation[posix]), 'r').read())
+            numberchunks = len(mapstring)/((len(mapstring)/1200) + 1)
+            chunk = 0
+            chunkedmapstring = [''.join(x) for x in zip(*[list(mapstring[z::numberchunks]) for z in range(numberchunks)])]
+
             spawnpoint = my_map.spawns[random.randint(0, len(my_map.spawns)-1)]
             clientplayer = Playerz(from_pygame((spawnpoint.position_x+65, spawnpoint.position_y+65)), message.colour.value, message.name.value, 100, euclid.Vector2(0, 0))
 
@@ -1033,6 +1081,12 @@ def custom_msghandler(sender, message):
                 PlayerInfoso.ability.value = str(IPRegistry[x.address].ability)
                 sender.send_reliable_message(PlayerInfoso)
 
+            CurrentPlayers = len(PlayerList)
+
+            data = {'cmd': 'p', 'info': CurrentPlayers}
+            if ms_public == True:
+                r = requests.post(config['Masterserver']['ms_ip'], data)
+
             SenderList.append(sender)
             sender.OnDisconnect += disco_msghandler
             sender.OnError += disco_msghandler
@@ -1051,7 +1105,8 @@ def custom_msghandler(sender, message):
                         x.send_reliable_message(Disco)
                     del IPRegistry[sender.address]
                     sender.disconnect()
-                    data = {'cmd': '-p'}
+                    CurrentPlayers = len(PlayerList)
+                    data = {'cmd': 'p', 'info': CurrentPlayers}
                     if ms_public == True:
                         r = requests.post(config['Masterserver']['ms_ip'], data)
             except:
@@ -1128,37 +1183,16 @@ masterserver_ip = config['Masterserver']['ms_ip']
 #masterserver.do_handshake_on_connect = True
 ms_public = True
 if config['Masterserver']['ms_visible'] == 'False':
-    #config['Masterserver']['ms_ip'] = ''
     ms_public = False
-#try:
-#    masterserver.connect((masterserver_ip, 2000))
-#    #masterserver.do_handshake()
-#    print 'Connected to master server through Internet'
-#    print 'Master server IP: ' + str(masterserver_ip)  + '    Port: 2000'
-#    ms_connected = True
-#except:
-#    try:
-#        masterserver.connect((int_ip, 2000))
-#        print 'Connected to master server through LAN'  + '    Port: 2000'
-#        ms_connected = True
-#    except:
-#        print 'Could not connect to master server. Your game will not be visible on the server list.'
-#        print 'Either the master server is down, or your network is not properly configured. Check your firewall and port 2000. Might be a NAT or a LAN problem as well. Cheers.'
-
-#if ms_connected == True:
-#    #masterserver.setblocking(1)
-#    #masterserver.do_handshake()
-#    #masterserver.sendall('r')
-#    masterserver.sendall('+' + json.dumps([ServerName, MapName, GameMode, CurrentPlayers, MaxPlayers, Passworded, 'lol'], -1))
-data = {'cmd': '+', 'info': json.dumps([ServerName, MapName, GameMode, CurrentPlayers, MaxPlayers, Passworded], -1)}
-#createdata = urllib.urlencode(data)
-#create = urllib2.Request('http://localhost:11080/server', createdata)
 if ms_public == True:
+    data = {'cmd': '+', 'info': json.dumps([ServerName, MapName, GameMode, CurrentPlayers, MaxPlayers, Passworded], -1)}
     r = requests.post(config['Masterserver']['ms_ip'], data)
-    #masterserver.sendall('a')
+    data = {'cmd': 'h'}
+    r = requests.post(config['Masterserver']['ms_ip'], data)
+    data = {'cmd': 'm', 'info': MapName}
+    r = requests.post(config['Masterserver']['ms_ip'], data)
 
 server.OnMessage += custom_msghandler
-#server.OnDisconnect += custom_delhandler
 
 def disco_msghandler(sender, args):
     global space
@@ -1176,7 +1210,8 @@ def disco_msghandler(sender, args):
                 x.send_reliable_message(Disco)
             del IPRegistry[sender.address]
             sender.disconnect()
-            data = {'cmd': '-p'}
+            CurrentPlayers = len(PlayerList)
+            data = {'cmd': 'p', 'info': CurrentPlayers}
             if ms_public == True:
                 r = requests.post(config['Masterserver']['ms_ip'], data)
     except:
@@ -1187,17 +1222,27 @@ def on_connectcheck(sender, args):
     for x in SenderList:
         if x.address == sender.address:
             sender.disconnect()
+        if CurrentPlayers >= MaxPlayers:
+            sender.disconnect()
+
+server.OnConnectRequest += on_connectcheck
+
 while running:  # main game loop
     #server.update()
     #with lock:
     try:
+
+        if changemap != '':
+            ChangeMap(changemap)
+            changemap = ''
+
         playerposlist = []
     
         for x in killfeed:
             Killfeedmessage.kill.value = json.dumps(x)
             server.send_reliable_message_to_all(Killfeedmessage)
             killfeed.remove(x)
-    
+
         for player in PlayerList:
             player.move()
             #playerposlist.append((int(player.body.position.x), int(player.body.position.y)))
@@ -1205,7 +1250,7 @@ while running:  # main game loop
                 playerposlist.append((player.id, int(player.body.position.x), int(player.body.position.y), player.health, player.timer, player.a, player.mx, (player.lastshotid,player.lastshot.body.position.int_tuple,(player.lastshot.impulse.x,player.lastshot.impulse.y))))
             else:
                 playerposlist.append((player.id, int(player.body.position.x), int(player.body.position.y), player.health, player.timer, player.a, player.mx, (player.lastshotid,0,0)))
-    
+
         PlayerPositionss.serializedplayerpositions.value = json.dumps(playerposlist)
     
         #for peer in server.peers:
@@ -1227,76 +1272,25 @@ while running:  # main game loop
                 heartbeat = 0
                 data = {'cmd': 'h'}
                 r = requests.post(config['Masterserver']['ms_ip'], data)
-        #for s in my_map.powerups:
-        #    if s.mode == 2:
-        #        sx, sy = s.position_x + 51, s.position_y + 51
-        #        if -300 < sx - my_player.body.position.x < 900 and -100 < sy - my_player.body.position.y < 700:
-        #            Shield.blit(DISPLAYSURF, (sx - my_player.body.position.x, sy - my_player.body.position.y))
-        #        shieldcoll = pygame.Rect(sx - my_player.body.position.x - 16, sy - my_player.body.position.y - 16, 32, 32)
-        #        if shieldcoll.colliderect(my_player.rect) and my_player.shielded == False:
-        #            SOUNDSDICT['Powa'].play()
-        #            my_map.Shields.remove(s)
-        #            pygame.time.set_timer(USEREVENT+6, 60000)
-        #            my_map.PowerTimes.append((int(pygame.time.get_ticks()) + 60000, 'D'))
-        #            my_player.cachedarmor += 0.4
-        #            my_player.shielded = True
-        #    elif s.mode == 1:
-        #        sx, sy = s.position_x + 51, s.position_y + 51
-        #        if -300 < sx - my_player.body.position.x < 900 and -100 < sy - my_player.body.position.y < 700:
-        #            Speed.blit(DISPLAYSURF, (sx - my_player.body.position.x, sy - my_player.body.position.y))
-        #        #DISPLAYSURF.blit(IMAGESDICT['Speed'], (sx - my_player.position.x, sy - my_player.position.y))
-        #        speedcoll = pygame.Rect(sx - my_player.body.position.x - 16, sy - my_player.body.position.y - 16, 32, 32)
-        #        if speedcoll.colliderect(my_player.rect) and my_player.speeded == False:
-        #            SOUNDSDICT['Powa'].play()
-        #            my_map.Speeds.remove(s)
-        #            pygame.time.set_timer(USEREVENT+7, 60000)
-        #            my_map.PowerTimes.append((int(pygame.time.get_ticks()) + 60000, 'S'))
-        #            my_player.speedup = 2
-        #            my_player.speeded = True
-        #
-        #    elif s.mode == 0:
-        #        sx, sy = s.position_x + 51, s.position_y + 51
-        #        px, py = to_pygame(my_player.body.position, DISPLAYSURF)
-        #        #DISPLAYSURF.blit(IMAGESDICT['Health'], (sx - my_player.position.x, sy - my_player.position.y))
-        #        #if -300 < sx - my_player.body.position.x < 900 and -100 < sy - my_player.body.position.y < 700:
-        #        Health.blit(DISPLAYSURF, (sx - px + 400, sy - py + 351))
-        #        #s.image.blit(DISPLAYSURF, (sx - px + 400, sy - py + 351))
-        #        #healthcoll = pygame.Rect(sx - my_player.body.position.x - 16, sy - my_player.body.position.y - 16, 32, 32)
-        #        #if healthcoll.colliderect(my_player.rect) and my_player.health != 100:
-        #        #    SOUNDSDICT['Powa'].play()
-        #        #    my_map.Healths.remove(s)
-        #        #    my_map.PowerTimes.append((int(pygame.time.get_ticks()) + 60000, 'H'))
-        #        #    pygame.time.set_timer(21, 60000)
-        #        #    if my_player.health <= 75:
-        #        #        my_player.health += 25
-        #        #    else:
-        #        #        my_player.health = 100
-        #
-        #for x in my_map.PowerTimes:
-        #    time, power = x
-        #    if time < int(pygame.time.get_ticks()):
-        #        if power == 'D':
-        #            my_map.Shields.append(my_map.DeletedPowerD[0])
-        #            my_player.cachedarmor -= 0.4
-        #            my_player.shielded = False
-        #            my_map.PowerTimes.remove(x)
-        #        if power == 'S':
-        #            my_map.Speeds.append(my_map.DeletedPowerS[0])
-        #            my_player.speedup = 1
-        #            my_player.speeded = False
-        #            my_map.PowerTimes.remove(x)
-        #        if power == 'H':
-        #            my_map.Healths.append(my_map.DeletedPowerH[0])
-        #            my_map.PowerTimes.remove(x)
-    
-        #for platform in my_map.movingplatforms:
-        #    platform.body.velocity = Vec2d(platform.lx * math.sin(platform.sx * platform.xxx + platform.ox), platform.ly * math.sin(platform.sy * platform.yyy + platform.oy))
-        #    platform.body.position.x += platform.lx * math.sin(platform.sx * platform.xxx + platform.ox) #* dfps
-        #    platform.body.position.y -= platform.ly * math.sin(platform.sy * platform.yyy + platform.oy)
-        #    platform.yyy += 1
-        #    platform.xxx += 1
-        #    platform.body.update_position(platform.body, 1/50)
-    
+
+        maptimer += dtime
+
+        #Check if FFA game ends
+        if GameMode == 'DM':
+            for player in PlayerList:
+                if player.kills >= int(config['FFA']['max_kills']):
+                    posix += 1
+                    if posix >= len(ServerRotation):
+                        posix = 0
+                    ChangeMap(ServerRotation[posix][0:-4])
+            if maptimer > 60 * float(config['FFA']['max_time']):
+                posix += 1
+                if posix >= len(ServerRotation):
+                    posix = 0
+                ChangeMap(ServerRotation[posix][0:-4])
+                maptimer = 0
+
+
         for platform in my_map.deletedpowerups:
             platform.timer += dtime
             #print platform.timer

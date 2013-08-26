@@ -5,15 +5,15 @@ INSTRUCTIONS
 This branch is the python source code, and is the most up to date at all times. 
 There is also a Windows branch, but source is always better.
 
-Current version - 0.9.5 (!Beta!)
-                  2nd digit represents the version of the client program
+Current version - 0.10.7 (!Beta!)
+                  2nd digits represents the version of the client program
                   3rd digit represents the version of the server program
-                  As a player, you should try to keep up to date with the 2nd digit
+                  As a player, you should try to keep up to date with the 2nd digits
                   As a server host, you should keep up to date with the 3rd digit
 
 TODO - Redo powerups graphics
-     - Fix map rotation
      - Moving platforms (I might actually give up on this one)
+     - Scoreboard should display match timer and server name too
 
 Python dependencies:
 -*Python 2.7
@@ -36,7 +36,7 @@ ClientSettings.cfg - game client settings (faster than using CLIENTCLI.py)
 ServerSettings.cfg - not a lot of options yet, but the essential ones are there
 
 Notes - Master server is ONLINE! at http://frenzyms.appspot.com/
-        The server can't change maps yet (annoying threading problems)
+        Server rotation is now working (24/7 servers are now possible)
         On my LAN the ping is as low as 1ms. Average is around 5ms. Pretty sweet.
         That's because I'm hosting on a crappy laptop and running a client at the same time though.
         It could be even faster.

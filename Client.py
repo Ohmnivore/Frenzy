@@ -112,8 +112,8 @@ black = 0, 0, 0
 pygame.init()
 pygame.font.init()
 FPSCLOCK = pygame.time.Clock()
-leftReleased = True
-rightReleased = True
+leftReleased = False
+rightReleased = False
 aReleased = True
 dReleased = True
 RocketList = []
@@ -494,11 +494,11 @@ shieldresetevent = pygame.event.Event(SHIELDRESET)
 # Set events for left and right key presses
 LEFTGHOST = USEREVENT+2
 ghostleft = pygame.event.Event(LEFTGHOST)
-pygame.event.post(ghostleft)
+#pygame.event.post(ghostleft)
 
 RIGHTGHOST = USEREVENT+1
 ghostright = pygame.event.Event(RIGHTGHOST)
-pygame.event.post(ghostright)
+#pygame.event.post(ghostright)
 
 ghostinit = 0
 
@@ -562,6 +562,11 @@ class Platform:
 class Map:
     def __init__(self, mapname, maptext):
         global space
+
+        space = pymunk.Space()
+        space.gravity = (0.0, -700.0)
+        space.collision_slop = 0.0001
+        space.collision_bias = pow(1.0-0.1, 120.0)
 
         self.mapname = str(mapname)
         self.lowest_y = 0
@@ -1198,12 +1203,15 @@ class FetchUrls(threading.Thread):
         Thread run method. Check URLs one by one.
         """
         try:
-            while self.connection:
-                self.connection.update()
-                time.sleep(0.0001)
-        except (KeyboardInterrupt, SystemExit):
-            #cleanup_stop_thread();
-            sys.exit()
+            try:
+                while self.connection:
+                    self.connection.update()
+                    time.sleep(0.0001)
+            except (KeyboardInterrupt, SystemExit):
+                #cleanup_stop_thread();
+                sys.exit()
+        except:
+            pass
 
 #Client-side messages
 
@@ -1314,6 +1322,7 @@ def custom_msghandler(sender, message):
             if message.chunk.value + 1 == message.chunks.value:
                 my_map = Map(str(message.name.value), zlib.decompress(base64.b64decode(mapstring)))
                 print 'Map received'
+                mapstring = ''
         if message.MessageTypeID == PlayerPositions.MessageTypeID:
             #playernamelist = pickle.loads(str(message.serializedplayerlist.value))
             msg = json.loads(str(message.serializedplayerpositions.value))
