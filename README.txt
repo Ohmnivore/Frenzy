@@ -5,14 +5,15 @@ INSTRUCTIONS
 This branch is the python source code, and is the most up to date at all times. 
 There is also a Windows branch, but source is always better.
 
-Current version - 0.7.3 (!Beta!)
-                  2nd digit represents the version of the client program
+Current version - 0.10.7 (!Beta!)
+                  2nd digits represent the version of the client program
                   3rd digit represents the version of the server program
                   As a player, you should try to keep up to date with the 2nd digit
                   As a server host, you should keep up to date with the 3rd digit
 
 TODO - NAT punch-through for true online
-       Redo powerups graphics
+     - Redo powerups graphics
+     - Scoreboard should display match timer and server name too
 
 Python dependencies:
 -You don't need 'nothing if you're running the Windows branch on a Windows machine!
@@ -26,13 +27,12 @@ CLIENTCLI.exe - the game menu
 MapEditorGUI.exe - launches the map editor 
 MapTest.exe - offline map tester
 Server.exe - the server (CLI does not work on Windows yet - working on the bug)
+             it just basicaly runs as an invisible process without an interface
+             try running from source (you can also mod stuff yourself)
 ClientSettings.cfg - game client settings (faster than using CLIENTCLI.py)
 ServerSettings.cfg - not a lot of options yet, but the essential ones are there
 
 Notes - Master server is ONLINE! at http://frenzyms.appspot.com/
-        The server can't change maps yet (annoying threading problems)
-        NAT punch-through isn't yet implemented (most external connections won't work)
-	Try port forwarding (6385) or pwnat (Windows exe included)
         On my LAN the ping is as low as 1ms. Average is around 5ms. Pretty sweet.
         Moving platforms do not move yet
 
