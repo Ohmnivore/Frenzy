@@ -6,7 +6,7 @@
 from pygame.locals import *
 import legume
 import pygame._view
-import pygame, pygame.mixer, os, sys # copy
+import pygame, os, sys # copy
 import random
 import math, pickle
 import euclid     #from https://code.google.com/p/pyeuclid/
@@ -457,17 +457,16 @@ blue = 51, 102, 153
 black = 0, 0, 0
 
 pygame.init()
-pygame.font.init()
 FPSCLOCK = pygame.time.Clock()
 
-# Setting of the system icon
-icon=pygame.image.load(os.path.join(mypath, 'Images', 'ICO.ico'))
-#icon=pygame.image.load('ICO.ico')
-pygame.display.set_icon(icon)
+## Setting of the system icon
+#icon=pygame.image.load(os.path.join(mypath, 'Images', 'ICO.ico'))
+##icon=pygame.image.load('ICO.ico')
+#pygame.display.set_icon(icon)
 
-# Setting of the caption and global font
-pygame.display.set_caption('Last Hazard on the Moon')
-BRUSH = pygame.font.Font(os.path.join(mypath, 'Fonts', 'ElectricCity.TTF'), 18)
+## Setting of the caption and global font
+#pygame.display.set_caption('Last Hazard on the Moon')
+#BRUSH = pygame.font.Font(os.path.join(mypath, 'Fonts', 'ElectricCity.TTF'), 18)
 
 # The variable that keeps the main loop running
 running = True

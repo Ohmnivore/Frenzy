@@ -19,8 +19,8 @@ Python dependencies:
 -*Python 2.7
 -*PyGame 1.9.2
 -Cmd2, but you can edit the import to run Cmd instead (Cmd is in the standard library)
--Kivy
--*Pymunk
+-Kivy 1.7.2 (or later)
+-*Pymunk 3.0
 -*ConfigObj
 -requests
 -pywin32 (if you're running a server on Windows)
