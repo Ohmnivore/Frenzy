@@ -87,6 +87,7 @@ otherplayers = {}
 ExploAnimList = []
 PowaList = []
 groups = 1
+PwupListBuffer = []
 
 displayscores = False
 allscores = []
@@ -1414,7 +1415,11 @@ def custom_msghandler(sender, message):
             chathistory.append((message.id.value, message.msg.value, message.placeholder.value))
         if message.MessageTypeID == PwupStatus.MessageTypeID:
             if message.active.value == True:
-                my_map.activepwups.append(my_map.powerups[message.id.value])
+                try:
+                    my_map.activepwups.append(my_map.powerups[message.id.value])
+                except:
+                    PwupListBuffer.append(my_map.powerups[message.id.value])
+                    
             else:
                 my_map.activepwups.remove(my_map.powerups[message.id.value])
                 ExploBlueCopy5 = Powerup.getCopy()
@@ -1495,6 +1500,9 @@ while my_map == None:
     pygame.time.wait(1)
     client.update()
     print 'Waiting for map'
+
+for x in PwupListBuffer:
+    my_map.activepwups.append(x)
 
 sentmsg = True
 
