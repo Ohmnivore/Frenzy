@@ -5,7 +5,11 @@ INSTRUCTIONS
 This branch is the python source code, and is the most up to date at all times. 
 There is also a Windows branch, but source is always better.
 
-Current version - 0.10.7 (!Beta!)
+Game info:
+http://lasthazard.ohmnivore.elementfx.com/the-game
+Plus read the following
+
+Current version - 0.11.8 (!Beta!)
                   2nd digits represents the version of the client program
                   3rd digit represents the version of the server program
                   As a player, you should try to keep up to date with the 2nd digits
@@ -13,7 +17,6 @@ Current version - 0.10.7 (!Beta!)
 
 TODO - Redo powerups graphics
      - Moving platforms (I might actually give up on this one)
-     - Scoreboard should display match timer and server name too
 
 Python dependencies:
 -*Python 2.7
@@ -41,6 +44,7 @@ Notes - Master server is ONLINE! at http://frenzyms.appspot.com/
         That's because I'm hosting on a crappy laptop and running a client at the same time though.
         It could be even faster.
         Moving platforms do not move yet
+        Only AIR and FFA game modes work so far
 
 NAT - If you happen to be behind a NAT, and want to host a server, then forward port 6385. 
       This is basicaly the same thing you would do for any other online game like TF2 and such.
