@@ -96,6 +96,10 @@ displaychat = False
 chat = '->'
 chathistory = []
 shifttoggle = False
+my_HUD = None
+hudbuffer = []
+servername = 'SampleServer'
+gamemode = 'FFA'
 
 
 FPS = 50  # frames per second to update the screen
@@ -113,8 +117,8 @@ black = 0, 0, 0
 pygame.init()
 pygame.font.init()
 FPSCLOCK = pygame.time.Clock()
-leftReleased = False
-rightReleased = False
+leftReleased = True
+rightReleased = True
 aReleased = True
 dReleased = True
 RocketList = []
@@ -501,7 +505,7 @@ RIGHTGHOST = USEREVENT+1
 ghostright = pygame.event.Event(RIGHTGHOST)
 #pygame.event.post(ghostright)
 
-ghostinit = 0
+ghostinit = 1
 
 space = pymunk.Space()
 space.gravity = (0.0, -700.0)
@@ -545,6 +549,57 @@ def textOutline(font, message, fontcolor, outlinecolor):
 #        self.char = char
 #        self.block = 1
 #        #self.block = random.choice(RectBlocks)
+
+class HUD:
+    def __init__(self):
+        self.displays = []
+
+    def display(self, dtime):
+        position = 0
+        for x in self.displays:
+            x.update(dtime)
+            global DISPLAYSURF
+            text = textOutline(BRUSH, x.returnstring(), (x.color),(0,0,2))
+            DISPLAYSURF.blit(text, (40 + position, 5))
+            position += text.get_width() + 5
+
+    def add(self, HUDElement):
+        self.displays.append(HUDElement)
+
+class HUDTimer:
+    def __init__(self, countdown, state, color, id):
+        self.state = state
+        self.countdown = countdown
+        self.color = color
+        self.id = id
+
+    def update(self, dtime):
+        if self.state == True:
+            self.countdown -= dtime
+
+    def change_color(self, color):
+        self.color = color
+
+    def returnstring(self):
+        formatted = ''
+        minutes = int(self.countdown / 60)
+        if self.countdown % 60 > 10:
+            formatted = str(minutes) + ':' + str(int(self.countdown % 60))
+        else:
+            formatted = str(minutes) + ':0' + str(int(self.countdown % 60))
+        return formatted
+
+class HUDLabel:
+    def __init__(self, text, color, id):
+        self.text = text
+        self.color = color
+        self.id = id
+
+    def update(self, dtime):
+        pass
+
+    def returnstring(self):
+        return self.text
 
 class Platform:
     def __init__(self, position_x, position_y, variety, mode):
@@ -983,13 +1038,22 @@ class Rocket:
         if mx >= 400:
             self.angle = math.atan(self.a)
             #print self.angle
-            self.body.lol = Vec2d(parent.cachedvelocity, 0)
-            self.body.apply_impulse((self.body.lol.rotated(self.angle)*20)+(parent.body.velocity/2))
+            self.body.lol = Vec2d(self.parent.cachedvelocity, 0)
+            if ((self.body.lol.rotated(self.angle)*20)+(self.parent.body.velocity*0.95)).length > (self.body.lol.rotated(self.angle)*20).length:
+                self.body.apply_impulse((self.body.lol.rotated(self.angle)*20)+(self.parent.body.velocity*0.95))
+                print self.parent.body.velocity
+            else:
+                self.body.apply_impulse((self.body.lol.rotated(self.angle)*20))
+                print 'LOLZ'
         if mx < 400:
             self.angle = math.atan(self.a)
             #print self.angle
-            self.body.lol = Vec2d(-parent.cachedvelocity, 0)
-            self.body.apply_impulse((self.body.lol.rotated(self.angle)*20)+(parent.body.velocity/2))
+            self.body.lol = Vec2d(-self.parent.cachedvelocity, 0)
+            if ((self.body.lol.rotated(self.angle)*20)+(self.parent.body.velocity*0.95)).length > (self.body.lol.rotated(self.angle)*20).length:
+                self.body.apply_impulse((self.body.lol.rotated(self.angle)*20)+(self.parent.body.velocity*0.95))
+            else:
+                self.body.apply_impulse((self.body.lol.rotated(self.angle)*20))
+                print 'LOLZ'
         #self.shape.group = 1
         self.shape.sensor = True
         #self.body.angle_degrees = self.angle
@@ -1008,11 +1072,7 @@ class Rocket:
         #print self.body.position - self.oldpos
         if space.segment_query_first(self.oldpos, self.body.position) != None or len(space.shape_query(self.shape)) > 0:
             for i in space.shape_query(self.shape):
-                if i in my_map.spawnlist:
-                    print 'spawn ignored'
-                elif i in my_map.poweruplist:
-                    print 'pwup ignored'
-                elif i not in my_map.spawnlist and i not in my_map.poweruplist:
+                if i not in my_map.spawnlist and i not in my_map.poweruplist:
                     #print space.shape_query(self.shape)
                     #print space.segment_query_first(self.oldpos, self.body.position)
                     self.ExploBlueCopy = EXPLOS[self.parent.colour].getCopy()
@@ -1039,7 +1099,7 @@ class Rocket:
 
 
 class OtherRocket:
-    def __init__(self, parent, impulse, start_pos):
+    def __init__(self, parent, impulse, start_pos, isplayer):
         self.ExploBlueCopy = 0
         mass = 1
         radius = 18
@@ -1054,13 +1114,14 @@ class OtherRocket:
         self.body.apply_impulse(impulse)
         #self.shape.group = 1
         self.shape.sensor = True
+        self.isplayer = isplayer
         #self.body.angle_degrees = self.angle
         RocketList.append(self)
 
     def DisplayRocket(self):
         self.body.apply_force(self.body.mass*space.gravity*-1)
         if -100 < self.body.position.x - my_player.body.position.x + 379< 900 and -100 < self.body.position.y - my_player.body.position.y + 321< 700:
-            BULLETS[self.parent.colour].blit(DISPLAYSURF, to_pygame((self.body.position.x-my_player.body.position.x+379, self.body.position.y-my_player.body.position.y+300), DISPLAYSURF))
+            BULLETS[self.parent.colour].blit(DISPLAYSURF, to_pygame((self.body.position.x-my_player.body.position.x+379, self.body.position.y-my_player.body.position.y+279), DISPLAYSURF))
         #self.trail = pymunk.Segment(self.body, self.oldpos, self.body.position, 16)
         #self.trail.sensor = True
         #pygame.draw.line(DISPLAYSURF, (255,255,255), to_pygame(self.oldpos, DISPLAYSURF), to_pygame(self.body.position, DISPLAYSURF), 6)
@@ -1081,7 +1142,10 @@ class OtherRocket:
                     self.ExploBlueCopy.play()
                     self.ExploBlueCopy.loop = False
                     #if -100 < self.position.x - my_player.position.x < 900 and -100 < self.position.y - my_player.position.y < 700:
-                    ExploAnimList.append((self.ExploBlueCopy,(to_pygame(self.body.position, DISPLAYSURF))))
+                    if self.isplayer == True:
+                        ExploAnimList.append((self.ExploBlueCopy,(to_pygame(self.body.position, DISPLAYSURF))))
+                    else:
+                        ExploAnimList.append((self.ExploBlueCopy,(to_pygame(self.body.position, DISPLAYSURF))))
                     SOUNDSDICT['Explosion'].play()
                     #RocketList.remove(self)
                     diff = my_player.body.position - self.body.position + Vec2d(5,15)
@@ -1241,7 +1305,9 @@ class ScoreboardRequest(legume.messages.BaseMessage):
 class Scoreboard(legume.messages.BaseMessage):
     MessageTypeID = legume.messages.BASE_MESSAGETYPEID_USER+15
     MessageValues ={
-    'scores': 'string 1200'
+    'scores': 'string 1200',
+    'server': 'string 20',
+    'gamemode': 'string 3'
     }
 
 class PlayerInfo(legume.messages.BaseMessage):
@@ -1315,11 +1381,35 @@ class Kills(legume.messages.BaseMessage):
     'kill': 'string 50'
     }
 
+class TimerCtrl(legume.messages.BaseMessage):
+    MessageTypeID = legume.messages.BASE_MESSAGETYPEID_USER+25
+    MessageValues ={
+    'setcountdown': 'bool',
+    'setstate': 'bool',
+    'setcolor': 'bool',
+    'id': 'int',
+    'countdown': 'int',
+    'state': 'bool',
+    'color': 'string 50'
+    }
+
+class LabelCtrl(legume.messages.BaseMessage):
+    MessageTypeID = legume.messages.BASE_MESSAGETYPEID_USER+26
+    MessageValues ={
+    'text': 'string 20',
+    'color': 'string 50',
+    'id': 'int'
+    }
+
 def custom_msghandler(sender, message):
         if message.MessageTypeID == MapInfo.MessageTypeID:
             global my_map
             global mapstring
+            global my_HUD
             mapstring += message.map.value
+            print message.chunk.value
+            if message.chunk.value == 0:
+                my_HUD = HUD()
             if message.chunk.value + 1 == message.chunks.value:
                 my_map = Map(str(message.name.value), zlib.decompress(base64.b64decode(mapstring)))
                 print 'Map received'
@@ -1334,6 +1424,10 @@ def custom_msghandler(sender, message):
                     my_player.body.position = Vec2d(posx, posy)
                     my_player.body.velocity = Vec2d(posx, posy) - my_player.oldvelocity
                     my_player.oldvelocity = Vec2d(posx, posy)
+                    id, startpos, impulse = newbullet
+                    if id != 0 and id != my_player.alreadycreated:
+                        rocket = OtherRocket(my_player, Vec2d(impulse), Vec2d(startpos), True)
+                        my_player.alreadycreated = id
                 else:
                     ID, otherplayers[ID].body.position.x, otherplayers[ID].body.position.y, otherplayers[ID].health, otherplayers[ID].timer, otherplayers[ID].a, otherplayers[ID].mx, newbullet = x
                     otherplayers[ID].body.velocity = Vec2d(posx, posy) - otherplayers[ID].oldvelocity
@@ -1342,7 +1436,7 @@ def custom_msghandler(sender, message):
                     #def __init__(self, parent, impulse, start_pos):
                     id, startpos, impulse = newbullet
                     if id != 0 and id != otherplayers[ID].alreadycreated:
-                        rocket = OtherRocket(otherplayers[ID], Vec2d(impulse), Vec2d(startpos))
+                        rocket = OtherRocket(otherplayers[ID], Vec2d(impulse), Vec2d(startpos), False)
                         otherplayers[ID].alreadycreated = id
             #print playerpositions[0]
             #x = 0
@@ -1405,8 +1499,12 @@ def custom_msghandler(sender, message):
             otherplayers[newplayer.id] = newplayer
         if message.MessageTypeID == Scoreboard.MessageTypeID:
             global allscores
+            global gamemode
+            global servername
             #print 'Score'
             allscores = json.loads(message.scores.value)
+            servername = message.server.value
+            gamemode = message.gamemode.value
             #print allscores
         if message.MessageTypeID == Kills.MessageTypeID:
             killfeed.append(json.loads(message.kill.value))
@@ -1418,7 +1516,7 @@ def custom_msghandler(sender, message):
                 try:
                     my_map.activepwups.append(my_map.powerups[message.id.value])
                 except:
-                    PwupListBuffer.append(my_map.powerups[message.id.value])
+                    PwupListBuffer.append(message.id.value)
                     
             else:
                 my_map.activepwups.remove(my_map.powerups[message.id.value])
@@ -1428,8 +1526,43 @@ def custom_msghandler(sender, message):
                 #if -100 < self.position.x - my_player.position.x < 900 and -100 < self.position.y - my_player.position.y < 700:
                 PowaList.append((ExploBlueCopy5,(to_pygame(my_map.powerups[message.id.value].body.position, DISPLAYSURF))))
                 SOUNDSDICT['Powa'].play()
+        if message.MessageTypeID == TimerCtrl.MessageTypeID:
+            try:
+                found = False
+                for x in my_HUD.displays:
+                    if x.id == message.id.value:
+                        found = True
+                        if message.setcountdown.value == True:
+                            x.countdown = message.countdown.value
+                        if message.setstate.value == True:
+                            x.state = message.state.value
+                        if message.setcolor == True:
+                            x.change_color(json.loads(message.color.value))
+                if found == False:
+                    timer = HUDTimer(message.countdown.value, message.state.value, json.loads(message.color.value), message.id.value)
+                    try:
+                        my_HUD.add(timer)
+                    except:
+                        hudbuffer.append(timer)
+            except:
+                timer = HUDTimer(message.countdown.value, message.state.value, json.loads(message.color.value), message.id.value)
+                hudbuffer.append(timer)
+        if message.MessageTypeID == LabelCtrl.MessageTypeID:
+            try:
+                found = False
+                for x in my_HUD.displays:
+                    if x.id == message.id.value:
+                        found = True
+                if found == False:
+                    label = HUDLabel(message.text.value, json.loads(message.color.value), message.id.value)
+                    try:
+                        my_HUD.add(label)
+                    except:
+                        hudbuffer.append(label)
+            except:
+                label = HUDLabel(message.text.value, json.loads(message.color.value), message.id.value)
+                hudbuffer.append(label)
 
-client = legume.Client()
 #clientsettings = open(os.path.join(mypath, 'TXT files', 'ClientSettings.txt'), 'r')
 #connectioninfo = clientsettings.readlines()
 
@@ -1445,8 +1578,10 @@ legume.messages.message_factory.add(PlayerPositions)
 legume.messages.message_factory.add(MapInfo)
 legume.messages.message_factory.add(ID)
 legume.messages.message_factory.add(Kills)
+legume.messages.message_factory.add(TimerCtrl)
+legume.messages.message_factory.add(LabelCtrl)
 
-
+client = legume.Client()
 my_player = Playerz(euclid.Vector2(700,-300), 1, 'init', 100, euclid.Vector2(0,0))
 
 ArrowStatuses = ArrowStatusMsg()
@@ -1502,7 +1637,12 @@ while my_map == None:
     print 'Waiting for map'
 
 for x in PwupListBuffer:
-    my_map.activepwups.append(x)
+    my_map.activepwups.append(my_map.powerups[x])
+PwupListBuffer = []
+
+for x in hudbuffer:
+    my_HUD.add(x)
+hudbuffer = []
 
 sentmsg = True
 
@@ -1588,7 +1728,7 @@ while running:  # main game loop
                  SOUNDSDICT['Boom'].play()
                  my_player.timer = 0
                  ArrowStatus[3] = '1'
-                 rocket = Rocket(my_player, my_player.a, mx, my_player.body.position)
+                 #rocket = Rocket(my_player, my_player.a, mx, my_player.body.position)
                  reloaded = False
     
              #if event.type == MOUSEBUTTONDOWN and event.button == 3 and displaychat == False:
@@ -1665,14 +1805,14 @@ while running:  # main game loop
              if event == ghostleft and displaychat == False:
                  ArrowStatus[0] = '1'
                  sentmsg = True
-                 my_player.body.apply_impulse(Vec2d(-my_player.cachedspeed*30,0))
+                 my_player.body.velocity += (Vec2d(-my_player.cachedspeed*30,0))
                  if ghostinit == 1:
                      leftReleased = False
     
              if event.type == KEYDOWN and event.key == K_a and noLeft == False and displaychat == False:
                  if leftReleased == True:
                      if my_player.speeded == False:
-                         my_player.body.apply_impulse(Vec2d(-my_player.cachedspeed*30,0))
+                         my_player.body.velocity += (Vec2d(-my_player.cachedspeed*30,0))
                          ArrowStatus[0] = '1'
                          sentmsg = True
                      else:
@@ -1739,11 +1879,11 @@ while running:  # main game loop
         reloadclock += FPSCLOCK.get_time()
     
         dtime_ms = FPSCLOCK.tick(50)
-        dtime = dtime_ms/1000
+        dtime = float(dtime_ms)/1000
         dfps = 50/(FPSCLOCK.get_fps() + 0.001)
         if dfps > 2:
             dfps = 2
-    
+
         m = 0
         while m <= 800 // bckgroundwidth2 + 1:
             DISPLAYSURF.blit(bckground2, ((m)*bckgroundwidth2 - (my_player.body.position.x/3)%bckgroundwidth2,0))
@@ -2088,6 +2228,9 @@ while running:  # main game loop
         #if my_player.inAir == True:
         #    my_player.gravity = 0.04
         #    my_player.velocity.y = my_player.velocity.y + my_player.gravity * dfps * 17
+        
+        my_HUD.display(dtime)
+
         for rocket in RocketList:
             rocket.DisplayRocket()
     
@@ -2181,34 +2324,38 @@ while running:  # main game loop
                     player = my_player
                 else:
                     player = otherplayers[ID]
-                DISPLAYSURF.blit(textOutline(BRUSH, 'Map:', (white),(0,0,2)), (5, 55))
-                DISPLAYSURF.blit(textOutline(BRUSH, str(my_map.mapname[0:-4]), (white),(0,0,2)), (50, 55))
-                DISPLAYSURF.blit(player.cachedname, (5, 105+25*y))
-                DISPLAYSURF.blit(textOutline(BRUSH, 'Name', (white),(0,0,2)), (5, 80))
-                DISPLAYSURF.blit(textOutline(BRUSH, 'Score', (white),(0,0,2)), (200, 80))
-                DISPLAYSURF.blit(textOutline(BRUSH, 'Kills/', (white),(0,0,2)), (290, 80))
-                DISPLAYSURF.blit(textOutline(BRUSH, 'Deaths', (white),(0,0,2)), (380, 80))
+                DISPLAYSURF.blit(textOutline(BRUSH, 'Server:', (white),(0,0,2)), (5, 55))
+                DISPLAYSURF.blit(textOutline(BRUSH, str(servername), (white),(0,0,2)), (87, 55))
+                DISPLAYSURF.blit(textOutline(BRUSH, 'Map:', (white),(0,0,2)), (5, 80))
+                DISPLAYSURF.blit(textOutline(BRUSH, gamemode+'-'+str(my_map.mapname[0:-4]), (white),(0,0,2)), (50, 80))
+                DISPLAYSURF.blit(player.cachedname, (5, 130+25*y))
+                DISPLAYSURF.blit(textOutline(BRUSH, 'Name', (white),(0,0,2)), (5, 105))
+                DISPLAYSURF.blit(textOutline(BRUSH, 'Score', (white),(0,0,2)), (200, 105))
+                DISPLAYSURF.blit(textOutline(BRUSH, 'Kills/', (white),(0,0,2)), (290, 105))
+                DISPLAYSURF.blit(textOutline(BRUSH, 'Deaths', (white),(0,0,2)), (380, 105))
                 #DISPLAYSURF.blit(player.cachedname, (200, 50+20*y))
                 if player.colour == 0:
-                    DISPLAYSURF.blit(textOutline(BRUSH, str(playerscore), (153,204,0),(0,0,2)), (200, 105+25*y))
-                    DISPLAYSURF.blit(textOutline(BRUSH, str(kills) + '/', (153,204,0),(0,0,2)), (290, 105+25*y))
-                    DISPLAYSURF.blit(textOutline(BRUSH, str(deaths), (153,204,0),(0,0,2)), (380, 105+25*y))
+                    DISPLAYSURF.blit(textOutline(BRUSH, str(playerscore), (153,204,0),(0,0,2)), (200, 130+25*y))
+                    DISPLAYSURF.blit(textOutline(BRUSH, str(kills) + '/', (153,204,0),(0,0,2)), (290, 130+25*y))
+                    DISPLAYSURF.blit(textOutline(BRUSH, str(deaths), (153,204,0),(0,0,2)), (380, 130+25*y))
                 if player.colour == 1:
-                    DISPLAYSURF.blit(textOutline(BRUSH, str(playerscore), (94,165,199),(0,0,2)), (200, 105+25*y))
-                    DISPLAYSURF.blit(textOutline(BRUSH, str(kills) + '/', (94,165,199),(0,0,2)), (290, 105+25*y))
-                    DISPLAYSURF.blit(textOutline(BRUSH, str(deaths), (94,165,199),(0,0,2)), (380, 105+25*y))
+                    DISPLAYSURF.blit(textOutline(BRUSH, str(playerscore), (94,165,199),(0,0,2)), (200, 130+25*y))
+                    DISPLAYSURF.blit(textOutline(BRUSH, str(kills) + '/', (94,165,199),(0,0,2)), (290, 130+25*y))
+                    DISPLAYSURF.blit(textOutline(BRUSH, str(deaths), (94,165,199),(0,0,2)), (380, 130+25*y))
                 if player.colour == 2:
-                    DISPLAYSURF.blit(textOutline(BRUSH, str(playerscore), (191,59,42),(0,0,2)), (200, 105+25*y))
-                    DISPLAYSURF.blit(textOutline(BRUSH, str(kills) + '/', (191,59,42),(0,0,2)), (290, 105+25*y))
-                    DISPLAYSURF.blit(textOutline(BRUSH, str(deaths), (191,59,42),(0,0,2)), (380, 105+25*y))
+                    DISPLAYSURF.blit(textOutline(BRUSH, str(playerscore), (191,59,42),(0,0,2)), (200, 130+25*y))
+                    DISPLAYSURF.blit(textOutline(BRUSH, str(kills) + '/', (191,59,42),(0,0,2)), (290, 130+25*y))
+                    DISPLAYSURF.blit(textOutline(BRUSH, str(deaths), (191,59,42),(0,0,2)), (380, 130+25*y))
                 if player.colour == 3:
-                    DISPLAYSURF.blit(textOutline(BRUSH, str(playerscore), (255,255,0),(0,0,2)), (200, 105+25*y))
-                    DISPLAYSURF.blit(textOutline(BRUSH, str(kills) + '/', (255,255,0),(0,0,2)), (290, 105+25*y))
-                    DISPLAYSURF.blit(textOutline(BRUSH, str(deaths), (255,255,0),(0,0,2)), (380, 105+25*y))
+                    DISPLAYSURF.blit(textOutline(BRUSH, str(playerscore), (255,255,0),(0,0,2)), (200, 130+25*y))
+                    DISPLAYSURF.blit(textOutline(BRUSH, str(kills) + '/', (255,255,0),(0,0,2)), (290, 130+25*y))
+                    DISPLAYSURF.blit(textOutline(BRUSH, str(deaths), (255,255,0),(0,0,2)), (380, 130+25*y))
     
                 #print ID, playerscore, kills, deaths
                 y += 1
-    
+
+        
+
         rocket = 0
         ghostinit = 1
         #for rocket in RocketList:

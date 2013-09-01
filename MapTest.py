@@ -978,12 +978,18 @@ class Rocket:
             self.angle = math.atan(self.a)
             #print self.angle
             self.body.lol = Vec2d(parent.cachedvelocity, 0)
-            self.body.apply_impulse((self.body.lol.rotated(self.angle)*20)+(parent.body.velocity/2))
+            if ((self.body.lol.rotated(self.angle)*20)+(parent.body.velocity*0.5)).length > (self.body.lol.rotated(self.angle)*20).length:
+                self.body.apply_impulse((self.body.lol.rotated(self.angle)*20)+(parent.body.velocity*0.5))
+            else:
+                self.body.apply_impulse((self.body.lol.rotated(self.angle)*20))
         if mx < 400:
             self.angle = math.atan(self.a)
             #print self.angle
             self.body.lol = Vec2d(-parent.cachedvelocity, 0)
-            self.body.apply_impulse((self.body.lol.rotated(self.angle)*20)+(parent.body.velocity/2))
+            if ((self.body.lol.rotated(self.angle)*20)+(parent.body.velocity*0.5)).length > (self.body.lol.rotated(self.angle)*20).length:
+                self.body.apply_impulse((self.body.lol.rotated(self.angle)*20)+(parent.body.velocity*0.5))
+            else:
+                self.body.apply_impulse((self.body.lol.rotated(self.angle)*20))
         #self.shape.group = 1
         self.shape.sensor = True
         #self.body.angle_degrees = self.angle
@@ -1002,11 +1008,7 @@ class Rocket:
         #print self.body.position - self.oldpos
         if space.segment_query_first(self.oldpos, self.body.position) != None or len(space.shape_query(self.shape)) > 0:
             for i in space.shape_query(self.shape):
-                if i in my_map.spawnlist:
-                    print 'spawn ignored'
-                elif i in my_map.poweruplist:
-                    print 'pwup ignored'
-                elif i not in my_map.spawnlist and i not in my_map.poweruplist:
+                if i not in my_map.spawnlist and i not in my_map.poweruplist:
                     #print space.shape_query(self.shape)
                     #print space.segment_query_first(self.oldpos, self.body.position)
                     self.ExploBlueCopy = EXPLOS[self.parent.colour].getCopy()
@@ -1020,7 +1022,7 @@ class Rocket:
                     length = diff.length
                     direc = diff.normalized()
                     #direc *= 10.0/length*3000
-                    lol =( 700 - length*9) * (my_player.damage + 15)/75 * 4
+                    lol =( 450 - length*9) * (my_player.damage + 15)/75 * 4
                     if lol < 0:
                         lol = 0
                     direc *= lol

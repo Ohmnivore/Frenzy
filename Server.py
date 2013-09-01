@@ -85,6 +85,7 @@ global status
 global player
 global mapmenu
 global options
+HUDs = []
 
 def to_pygame(p):
     return int(p[0]),600 - int(p[1])
@@ -111,12 +112,9 @@ class FetchUrls(threading.Thread):
         """
         Thread run method. Check URLs one by one.
         """
-        try:
-            while self.connection:
-                self.connection.update()
-                time.sleep(0.0001)
-        except:
-            pass
+        while self.connection:
+            self.connection.update()
+            time.sleep(0.0001)
 
 class CLI(cmd.Cmd):
     """Command line interface for FRENZY server."""
@@ -165,7 +163,7 @@ class CLI(cmd.Cmd):
     def do_options(self, line):
         "Opens up the map rotation management menu"
         global options
-        print '\nOptions menu active.\nAvailable commands: \n'
+        print '\nOptions menu active.\nAvailable commands: chat, toggle_chat\n'
         options = True
 
     #def do_EOF(self, line):
@@ -197,21 +195,32 @@ class CLI(cmd.Cmd):
 
     def do_stats(self, line):
         "Displays current server stats"
+        global GameMode
+        global maptimer
         print '\nServer name: ' + ServerName
         print 'Map: ' + MapName
-        print 'Game mode: ' + 'DM'
+        print 'Game mode: ' + GameMode
         print 'Max players: ' + str(MaxPlayers)
         print 'Current players: ' + str(CurrentPlayers) + '\n'
+        if GameMode == 'FFA' or GameMode == 'AIR':
+            formatted = ''
+            x = float(config[GameMode]['max_time']) * 60 - maptimer
+            minutes = int(x / 60)
+            if x % 60 > 10:
+                formatted = str(minutes) + ':' + str(int(x % 60))
+            else:
+                formatted = str(minutes) + ':0' + str(int(x % 60))
+            print 'Time left: ' + formatted
 
     def do_fps(self, line):
         "Displays the server's average FPS for two seconds."
         y = 0
         sumfps = 0
-        while y < 20:
+        while y <= 20:
             time.sleep(0.1)
-            sumfps += int(FPSCLOCK.get_fps())
+            sumfps += FPSCLOCK.get_fps()
             y += 1
-        averagefps = sumfps / 20
+        averagefps = sumfps / 21
         print averagefps
 
     def do_players(self, line):
@@ -277,31 +286,56 @@ class CLI(cmd.Cmd):
             print "Could not send to the specified player. Check the ID.\n"
 
     def do_rotation(self, line):
-        "Shows current map rotation and indicates the current map."
+        "Shows current map rotation and indicates the current map. The number preceding the map name is its index. The '> ' indicates the current position in the map rotation and the '* ' indicates the current map if the rotation is overriden."
+        global posix
         print ''
-        global MapName, ServerRotation
-        for mapnamez in ServerRotation:
-            x = mapnamez[:-4]
-            if x == MapName:
-                print '> ' + MapName
+        found = None
+        global MapName, ServerRotation, ServerRotation2
+        y = 0
+        for x in ServerRotation2:
+            if y == posix:
+                print y,'> ', x
+                found = x
             else:
-                print x
+                print y,x
+            y += 1
+        if found != (MapName, GameMode):
+            print '* ', (MapName, GameMode)
         print ''
 
     def do_update_maps(self, line):
-        "Updates the map rotation. Use this if you modify the 'Server rotation' directory while the server is running for changes to take effect."
-        global ServerRotation, mypath
+        "Updates the map rotation. Use this if you modify the 'ServerRotation.cfg' file while the server is running for changes to take effect."
+        global ServerRotation, mypath, ServerRotation2
         ServerRotation = []
-        for (dirpath, dirnames, filenames) in walk(os.path.join(mypath, 'Server rotation')):
-            ServerRotation.extend(filenames)
-            break
+        ServerRotation2 = []
+        for x in open(os.path.join(mypath, 'Server rotation', 'ServerRotation.cfg'), 'r').readlines():
+            name = x.strip(' \t\n\r')
+            ServerRotation2.append((name[4:], name[:3]))
+            ServerRotation.append(name[4:]+'.txt')
 
     def do_set(self, line):
-        "Changes the current map to the specified one."
+        "Changes the current map. You can pass the map's index (from the 'rotation' command) \
+        to set the map rotation to that map, or pass the game mode followed by the map name to \
+        conserve the current position of the map rotation. Ex: set FFA-TestMap3"
         #ChangeMap(line)
         global changemap
         changemap = line
         changemap2 = line
+
+    def do_toggle_chat(self, line):
+        "Toggles whether new chat messages should show up in the admin console."
+        global show_chat
+        show_chat = not show_chat
+        print ''
+        print 'Show chat: ', show_chat
+        print ''
+
+    def do_chat(self, line):
+        "Shows chat history for the current match."
+        print ''
+        for x in chathistory:
+            print x
+            print ''
 
 class ServerCLI(threading.Thread):
     """
@@ -333,26 +367,50 @@ def ChangeMap(themap):
     global MapName
     global posix
     global my_map, ServerRotation, PlayerList, space, posix, groups, Chatmessage
-    groups = 1
+    global HUDs
+    global GameMode
+    global ServerRotation2
+    global chathistory
+    chathistory = []
+    HUDs = []
     found = False
-    posix = 0
-    for x in ServerRotation:
-        if themap == x[:-4]:
-            MapName = themap
+    #posix = 0
+    groups = 1
+    try:
+        if int(themap) < len(ServerRotation2):
+            int(themap)
+            posix = int(themap)
+            MapName, GameMode = ServerRotation2[int(themap)]
+            MapName.strip(' \t\n\r')
             found = True
-            #print pos
-            break
-        posix += 1
+    except:
+        try:
+            open(os.path.join(mypath, 'Server rotation', themap[4:]+'.txt'), 'r').read()
+            GameMode = themap[:3]
+            MapName = themap[4:].strip(' \t\n\r')
+            found = True
+        except:
+            pass
+    if GameMode == 'FFA' or GameMode == 'AIR':
+        EndLabel = HUDLabel('Match ends in:', (255,255,255), len(HUDs))
+        EndTimer = HUDTimer(int(config['FFA']['max_time']) * 60, True, (255,255,255), len(HUDs))
+    #for x in ServerRotation:
+        #if themap == x[:-4]:
+            #MapName = themap
+            #found = True
+            ##print pos
+            #break
+        #posix += 1
     if found == False:
-        print "\nCould not find the specified map in the 'Server rotation' directory. Make sure you call 'update_maps' if you have modified its contents.\n"
+        print "\nCould not find the specified map in the 'Server rotation' directory. Make sure you call 'update_maps' if you have modified its contents or that you are passing a correct index.\n"
     if found == True:
         #with lock:
             #print posix
             #Send new map
-        ServerRotation = []
-        for (dirpath, dirnames, filenames) in walk(os.path.join(mypath, 'Server rotation')):
-            ServerRotation.extend(filenames)
-            break
+        #ServerRotation = []
+        #for (dirpath, dirnames, filenames) in walk(os.path.join(mypath, 'Server rotation')):
+            #ServerRotation.extend(filenames)
+            #break
         #my_map.spawns = []
         #my_map.spawnlist = []
         space = pymunk.Space()
@@ -371,17 +429,19 @@ def ChangeMap(themap):
         #        space.remove(platform.shape)
         #except:
         #    pass
-        MapName = str(ServerRotation[posix][0:-4])
+        #MapName = str(ServerRotation[posix][0:-4])
         print "Changed map to: " + MapName + '\n'
         data = {'cmd': 'm', 'info': MapName}
         if ms_public == True:
+            r = requests.post(config['Masterserver']['ms_ip'], data)
+            data = {'cmd': 'g', 'info': GameMode}
             r = requests.post(config['Masterserver']['ms_ip'], data)
         #Chatmessage.id.value = 0
         #Chatmessage.msg.value = str("  Changed map to: " + MapName)
         #Chatmessage.placeholder.value = 100
         #server.send_reliable_message_to_all(Chatmessage)
         MapInfos = MapInfo()
-        mapopened = open(os.path.join(mypath, 'Server rotation', ServerRotation[posix]), 'r').read()
+        mapopened = open(os.path.join(mypath, 'Server rotation', MapName+'.txt'), 'r').read()
         mapstring = base64.b64encode(zlib.compress(json.dumps(pickle.loads(mapopened)),9))
         #my_mapz = Map(str(ServerRotation[posix][0:-4]), mapopened)
         my_map = Map(str(ServerRotation[posix][0:-4]), mapopened)
@@ -427,6 +487,12 @@ def ChangeMap(themap):
         Chatmessage.msg.value = str("  Changed map to: " + MapName)
         Chatmessage.placeholder.value = 100
         server.send_reliable_message_to_all(Chatmessage)
+        Chatmessage.id.value = 0
+        Chatmessage.msg.value = str("  Changed game mode to: " + GameMode)
+        Chatmessage.placeholder.value = 101
+        server.send_reliable_message_to_all(Chatmessage)
+        for x in HUDs:
+            x.declare()
 
 server_cmd = ServerCLI()
 server_cmd.start()
@@ -483,6 +549,8 @@ heartbeat = 0
 changemap = ''
 changemap2 = ''
 maptimer = 0
+show_chat = True
+chathistory = []
 
 space = pymunk.Space()
 space.gravity = (0.0, -700.0)
@@ -604,6 +672,7 @@ class Playerz:
 
     def __init__(self, position, colour, name , health , velocity):
         global space, groups
+        self.lastdamage = None
         self.jointime = datetime.datetime.now()
         self.score = 0
         self.kills = 0
@@ -673,10 +742,16 @@ class Playerz:
         self.cachedname = 0
 
     def checkIfValid(self):
-        if self.reloadspeed + self.weaponvelocity + self.damage > 15:
-            self.reloadspeed, self.weaponvelocity, self.damage = 0
-        if self.armor + self.speed + self.energy > 15:
-            self.armor, self.speed, self.energy = 0
+        if self.reloadspeed + self.weaponvelocity + self.damage > 15 or GameMode == 'AIR':
+            self.reloadspeed = 0
+            self.weaponvelocity = 0
+            self.damage = 0
+            print 'Demoted weapon: ' + self.name
+        if self.armor + self.speed + self.energy > 15  or GameMode == 'AIR':
+            self.armor = 0
+            self.speed = 0
+            self.energy = 0
+            print 'Demoted suit: ' + self.name
 
     def move(self):
         global killfeed
@@ -729,14 +804,21 @@ class Playerz:
         if self.left == True:
             self.body.velocity -= (self.cachedspeed*30,0)
 
-        if self.body.velocity.y > 700:
+        if self.body.velocity.y > 700 and GameMode != 'AIR':
             self.body.velocity.y = 700
         if self.body.velocity.x > 600+ self.cachedspeed * 30:
             self.body.velocity.x = 600 + self.cachedspeed * 30
         if self.body.velocity.x < -600 - self.cachedspeed * 30:
             self.body.velocity.x = -600 - self.cachedspeed * 30
         if self.body.position.y < -my_map.lowest_y+600 - 700:
-            killfeed.append((self.id, 'IS NO MORE!', self.id, random.randint(0, 255)))
+            if GameMode == 'AIR' and self.lastdamage != None:
+                for x in PlayerList:
+                    if x.id == self.lastdamage:
+                        x.score += 100
+                        x.kills += 1
+                        killfeed.append((x.id, 'BOMBS AWAY!', self.id, random.randint(0, 255)))
+            else:
+                killfeed.append((self.id, 'IS NO MORE!', self.id, random.randint(0, 255)))
             self.DieNow()
             self.inAir = False
         self.body.velocity.x *= 0.95
@@ -760,9 +842,10 @@ class Playerz:
         spawnpoint = my_map.spawns[random.randint(0, len(my_map.spawns)-1)]
         self.body.position = Vec2d(spawnpoint.position_x+65, spawnpoint.position_y+335)
         self.body.velocity = (0,0)
-        self.armor -= 0.04
+        #self.armor -= 0.04
         self.shielded = False
         self.speeded = False
+        self.lastdamage = None
 
 # The rocket class: represents the projectiles
 class Rocket:
@@ -784,14 +867,20 @@ class Rocket:
         if mx == True:
             self.angle = math.atan(self.a)
             #print self.angle
-            self.body.lol = Vec2d(parent.cachedvelocity, 0)
-            self.impulse = Vec2d((self.body.lol.rotated(self.angle)*20)+(parent.body.velocity/2))
+            self.body.lol = Vec2d(self.parent.cachedvelocity, 0)
+            if ((self.body.lol.rotated(self.angle)*20)+(self.parent.body.velocity*0.5)).length > (self.body.lol.rotated(self.angle)*20).length:
+                self.impulse = Vec2d((self.body.lol.rotated(self.angle)*20)+(self.parent.body.velocity/2))
+            else:
+                self.impulse = Vec2d((self.body.lol.rotated(self.angle)*20))
             self.body.apply_impulse(self.impulse)
         else:
             self.angle = math.atan(self.a)
             #print self.angle
-            self.body.lol = Vec2d(-parent.cachedvelocity, 0)
-            self.impulse = Vec2d((self.body.lol.rotated(self.angle)*20)+(parent.body.velocity/2))
+            self.body.lol = Vec2d(-self.parent.cachedvelocity, 0)
+            if ((self.body.lol.rotated(self.angle)*20)+(self.parent.body.velocity*0.5)).length > (self.body.lol.rotated(self.angle)*20).length:
+                self.impulse = Vec2d((self.body.lol.rotated(self.angle)*20)+(self.parent.body.velocity/2))
+            else:
+                self.impulse = Vec2d((self.body.lol.rotated(self.angle)*20))
             self.body.apply_impulse(self.impulse)
         self.shape.sensor = True
         RocketList.append(self)
@@ -806,13 +895,16 @@ class Rocket:
                         diff = player.body.position - self.body.position + Vec2d(5,15)
                         length = diff.length
                         direc = diff.normalized()
-                        lol =( 700 - length*9) * (self.parent.damage + 15)/75 * 4
+                        lol =(300 - length*7) * (self.parent.damage + 15)/75 * 4
                         if lol < 0:
                             lol = 0
                         direc *= lol
-                        player.body.apply_impulse(direc)
+                        if GameMode != 'AIR':
+                            player.body.apply_impulse(direc)
                         if player != self.parent:
+                            player.body.apply_impulse(direc*(101-p)/10)
                             player.health -= direc.length / 7 * player.cachedarmor
+                            player.lastdamage = self.parent.id
                             if player.health <= 0:
                                 self.parent.kills += 1
                                 killfeed.append((self.parent.id, random.choice(expletiveslist), player.id, random.randint(0, 255)))
@@ -846,7 +938,9 @@ class ScoreboardRequest(legume.messages.BaseMessage):
 class Scoreboard(legume.messages.BaseMessage):
     MessageTypeID = legume.messages.BASE_MESSAGETYPEID_USER+15
     MessageValues ={
-    'scores': 'string 1200'
+    'scores': 'string 1200',
+    'server': 'string 20',
+    'gamemode': 'string 3'
     }
 
 class PlayerInfo(legume.messages.BaseMessage):
@@ -920,6 +1014,99 @@ class Kills(legume.messages.BaseMessage):
     'kill': 'string 50'
     }
 
+class TimerCtrl(legume.messages.BaseMessage):
+    MessageTypeID = legume.messages.BASE_MESSAGETYPEID_USER+25
+    MessageValues ={
+    'setcountdown': 'bool',
+    'setstate': 'bool',
+    'setcolor': 'bool',
+    'id': 'int',
+    'countdown': 'int',
+    'state': 'bool',
+    'color': 'string 50'
+    }
+
+class LabelCtrl(legume.messages.BaseMessage):
+    MessageTypeID = legume.messages.BASE_MESSAGETYPEID_USER+26
+    MessageValues ={
+    'text': 'string 20',
+    'color': 'string 50',
+    'id': 'int'
+    }
+
+class HUDTimer:
+    def __init__(self, countdown, state, color, id):
+        global HUDs
+        HUDs.append(self)
+        self.countdown = countdown
+        self.state = state
+        self.color = color
+        self.id = id
+        self.msg = TimerCtrl()
+        self.msg.id.value = self.id
+        self.msg.countdown.value = self.countdown
+        self.msg.state.value = self.state
+
+    def stop(self):
+        global server
+        self.msg.setstate.value = True
+        self.msg.setcountdown.value = True
+        self.msg.state.value = False
+        self.msg.countdown.value = self.countdown
+        server.send_reliable_message_to_all(self.msg)
+
+    def start(self):
+        global server
+        self.msg.setstate.value = True
+        self.msg.setcountdown.value = True
+        self.msg.state.value = True
+        self.msg.countdown.value = self.countdown
+        server.send_reliable_message_to_all(self.msg)
+
+    def update(self):
+        global dtime
+        if self.state == True:
+            self.countdown -= dtime
+
+    def change_color(self, color):
+        global server
+        self.color = color
+        self.msg.setcountdown.value = True
+        self.msg.setstate.value = True
+        self.msg.setcolor.value = True
+        self.msg.color.value = json.dumps(self.color)
+        self.msg.countdown.value = self.countdown
+        self.msg.state.value = self.state
+        server.send_reliable_message_to_all(self.msg)
+
+    def declare(self):
+        global server
+        self.msg.setcountdown.value = False
+        self.msg.setstate.value = False
+        self.msg.setcolor.value = False
+        self.msg.color.value = json.dumps(self.color)
+        self.msg.countdown.value = self.countdown
+        self.msg.state.value = self.state
+        server.send_reliable_message_to_all(self.msg)
+
+class HUDLabel:
+    def __init__(self, text, color, id):
+        HUDs.append(self)
+        self.text = text
+        self.color = color
+        self.id = id
+        self.msg = LabelCtrl()
+        self.msg.id.value = self.id
+        self.msg.color.value = json.dumps(self.color)
+        self.msg.text.value = self.text
+
+    def update(self):
+        pass
+
+    def declare(self):
+        global server
+        server.send_reliable_message_to_all(self.msg)
+
 expletiveslist = ['eviscerated', 'pwned', 'dominated', 'splattered', 'blew up', 'exploded', 'BOOM!', 'POW!', 'slaughtered']
 killfeed = []
 
@@ -954,9 +1141,22 @@ playerposlist = []
 idref = 1
 
 ServerRotation = []
-for (dirpath, dirnames, filenames) in walk(os.path.join(mypath, 'Server rotation')):
-    ServerRotation.extend(filenames)
-    break
+ServerRotation2 = []
+for x in open(os.path.join(mypath, 'Server rotation', 'ServerRotation.cfg'), 'r').readlines():
+    name = x.strip(' \t\n\r')
+    ServerRotation2.append((name[4:], name[:3]))
+    ServerRotation.append(name[4:]+'.txt')
+#for (dirpath, dirnames, filenames) in walk(os.path.join(mypath, 'Server rotation')):
+    #ServerRotation.extend(filenames)
+    #break
+#ServerRotation.remove(ServerRotation[0])
+#for x in ServerRotation:
+    ##print x
+    #if 'ServerRotation' in x:
+        #ServerRotation.remove(x)
+        ##print x
+#print ServerRotation
+#print ServerRotation2
 MapInfos = MapInfo()
 mapstring = base64.b64encode(zlib.compress(json.dumps(pickle.loads(open(os.path.join(mypath, 'Server rotation', ServerRotation[posix]), 'r').read())),9))
 my_map = Map(str(ServerRotation[posix][0:-4]), open(os.path.join(mypath, 'Server rotation', ServerRotation[posix]), 'r').read())
@@ -977,6 +1177,7 @@ def custom_msghandler(sender, message):
         global masterserver
         global posix
         global my_map
+        global HUDs
         if message.MessageTypeID == ArrowStatusMsg.MessageTypeID:
             received_message = str(message.arrows.value)
             #print sender.last_packet_sent_at
@@ -1017,6 +1218,8 @@ def custom_msghandler(sender, message):
             clientplayer.armor = message.armor.value
             clientplayer.speed = message.speed.value
             clientplayer.energy = message.energy.value
+            
+            #print clientplayer.damage, clientplayer.weaponvelocity, clientplayer.reloadspeed
 
             clientplayer.checkIfValid()
 
@@ -1089,6 +1292,9 @@ def custom_msghandler(sender, message):
             SenderList.append(sender)
             sender.OnDisconnect += disco_msghandler
             sender.OnError += disco_msghandler
+            
+            for x in HUDs:
+                x.declare()
         if message.MessageTypeID == DisconnectNotice.MessageTypeID:
             try:
                 if IPRegistry[sender.address] in PlayerList:
@@ -1111,11 +1317,16 @@ def custom_msghandler(sender, message):
             except:
                 pass
         if message.MessageTypeID == ScoreboardRequest.MessageTypeID:
+            global GameMode
+            global ServerName
+            global chathistory
             y = []
             for player in PlayerList:
                 x = (player.id, player.score, player.kills, player.deaths)
                 y.append(x)
             Scores.scores.value = json.dumps(y)
+            Scores.gamemode.value = GameMode
+            Scores.server.value = ServerName
             sender.send_reliable_message(Scores)
         if message.MessageTypeID == ChatMsg.MessageTypeID:
             if len(''.join(message.msg.value.split())) > 2:
@@ -1123,6 +1334,11 @@ def custom_msghandler(sender, message):
                 Chatmessage.msg.value = str(message.msg.value)
                 Chatmessage.placeholder.value = message.placeholder.value
                 server.send_reliable_message_to_all(Chatmessage)
+                for x in PlayerList:
+                    if x.id == message.id.value:
+                        chathistory.append(x.name+message.msg.value)
+                        if show_chat == True:
+                            print x.name,message.msg.value
 
 #def custom_delhandler(sender, args):
 #    running = False
@@ -1144,6 +1360,8 @@ legume.messages.message_factory.add(PlayerPositions)
 legume.messages.message_factory.add(MapInfo)
 legume.messages.message_factory.add(ID)
 legume.messages.message_factory.add(Kills)
+legume.messages.message_factory.add(TimerCtrl)
+legume.messages.message_factory.add(LabelCtrl)
 
 PlayerPositionss = PlayerPositions()
 PlayerInfosx = PlayerInfoServer()
@@ -1167,7 +1385,11 @@ print 'Server name: ' + ServerName
 
 MapName = str(ServerRotation[posix][0:-4])
 
-GameMode = 'DM'
+GameMode = ServerRotation2[0][1]
+
+if GameMode == 'FFA' or GameMode == 'AIR':
+    EndLabel = HUDLabel('Match ends in:', (255,255,255), len(HUDs))
+    EndTimer = HUDTimer(int(config['FFA']['max_time']) * 60, True, (255,255,255), len(HUDs))
 
 MaxPlayers = int(config['Game']['max_players'])
 print 'Max players: ' + str(MaxPlayers) + '\n'
@@ -1189,6 +1411,8 @@ if ms_public == True:
     data = {'cmd': 'h'}
     r = requests.post(config['Masterserver']['ms_ip'], data)
     data = {'cmd': 'm', 'info': MapName}
+    r = requests.post(config['Masterserver']['ms_ip'], data)
+    data = {'cmd': 'g', 'info': GameMode}
     r = requests.post(config['Masterserver']['ms_ip'], data)
 
 server.OnMessage += custom_msghandler
@@ -1275,18 +1499,32 @@ while running:  # main game loop
         maptimer += dtime
 
         #Check if FFA game ends
-        if GameMode == 'DM':
+        if GameMode == 'FFA':
             for player in PlayerList:
                 if player.kills >= int(config['FFA']['max_kills']):
                     posix += 1
                     if posix >= len(ServerRotation):
                         posix = 0
-                    ChangeMap(ServerRotation[posix][0:-4])
+                    ChangeMap(posix)
             if maptimer > 60 * float(config['FFA']['max_time']):
                 posix += 1
                 if posix >= len(ServerRotation):
                     posix = 0
-                ChangeMap(ServerRotation[posix][0:-4])
+                ChangeMap(posix)
+                maptimer = 0
+
+        if GameMode == 'AIR':
+            for player in PlayerList:
+                if player.kills >= int(config['AIR']['max_kills']):
+                    posix += 1
+                    if posix >= len(ServerRotation):
+                        posix = 0
+                    ChangeMap(posix)
+            if maptimer > 60 * float(config['AIR']['max_time']):
+                posix += 1
+                if posix >= len(ServerRotation):
+                    posix = 0
+                ChangeMap(posix)
                 maptimer = 0
 
 
@@ -1314,6 +1552,9 @@ while running:  # main game loop
         space.step(1.0/50.0)
         for rocket in RocketList:
             rocket.body.reset_forces()
+
+        for x in HUDs:
+            x.update()
 
     except KeyboardInterrupt:
         # do nothing here

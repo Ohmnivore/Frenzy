@@ -15,7 +15,7 @@ text = ''
 class Server(db.Model):
     name = db.StringProperty()
     mapname = db.StringProperty()
-    gamemode = db.StringProperty(choices=set(["DM", "TDM", "Z", "KOTH", "J"]))
+    gamemode = db.StringProperty(choices=set(["FFA", "TDM", "ZOM", "KOH", "JUG", "AIR", "CTF"]))
     cp = db.IntegerProperty()
     mp = db.IntegerProperty()
     passworded = db.BooleanProperty()
@@ -147,6 +147,12 @@ class ServerHandler(webapp2.RequestHandler):
             server = query.get()
             if len(re.sub(r'[^\w]', '', self.request.get('info'))) <= 20:
                 server.mapname = re.sub(r'[^\w]', '', self.request.get('info'))
+            server.put()
+        if cmd == 'g':
+            query = Server.gql("WHERE address = :1", ip)
+            server = query.get()
+            if len(re.sub(r'[^\w]', '', self.request.get('info'))) <= 20:
+                server.gamemode = re.sub(r'[^\w]', '', self.request.get('info'))
             server.put()
         if cmd == 'h':
             query = Server.gql("WHERE address = :1", ip)
