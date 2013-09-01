@@ -5,7 +5,9 @@ INSTRUCTIONS
 This branch is the python source code, and is the most up to date at all times. 
 There is also a Windows branch, but source is always better.
 
-Current version - 0.10.7 (!Beta!)
+Game manual: http://lasthazard.ohmnivore.elementfx.com/the-game
+
+Current version - 0.11.8 (!Beta!)
                   2nd digits represent the version of the client program
                   3rd digit represents the version of the server program
                   As a player, you should try to keep up to date with the 2nd digit
@@ -13,7 +15,6 @@ Current version - 0.10.7 (!Beta!)
 
 TODO - NAT punch-through for true online
      - Redo powerups graphics
-     - Scoreboard should display match timer and server name too
 
 Python dependencies:
 -You don't need 'nothing if you're running the Windows branch on a Windows machine!
@@ -35,6 +36,7 @@ ServerSettings.cfg - not a lot of options yet, but the essential ones are there
 Notes - Master server is ONLINE! at http://frenzyms.appspot.com/
         On my LAN the ping is as low as 1ms. Average is around 5ms. Pretty sweet.
         Moving platforms do not move yet
+        Only FFA and AIR game modes work for now
 
 NAT - If you happen to be behind a NAT, there are a couple of options here. You can try
       port forwarding (6385) or you can run pwnat yourself until I integrate it myself.
