@@ -202,7 +202,7 @@ class CLI(cmd.Cmd):
         print 'Game mode: ' + GameMode
         print 'Max players: ' + str(MaxPlayers)
         print 'Current players: ' + str(CurrentPlayers) + '\n'
-        if GameMode == 'FFA' or GameMode == 'AIR':
+        if GameMode == 'FFA' or GameMode == 'AIR' or GameMode == 'JUG':
             formatted = ''
             x = float(config[GameMode]['max_time']) * 60 - maptimer
             minutes = int(x / 60)
@@ -211,6 +211,10 @@ class CLI(cmd.Cmd):
             else:
                 formatted = str(minutes) + ':0' + str(int(x % 60))
             print 'Time left: ' + formatted
+
+        if GameMode == 'JUG':
+            print 'Time left for current juggernaut (seconds): ' + str(int(jug.jugtimer))
+            print 'Juggernauts left: ' + str(int(config['JUG']['max_jugs']) - jug.jugcounter)
 
     def do_fps(self, line):
         "Displays the server's average FPS for two seconds."
@@ -271,7 +275,9 @@ class CLI(cmd.Cmd):
             Chatmessage.msg.value = line[0:]
             Chatmessage.placeholder.value = 100
             if line[0] == '0':
-                server.send_reliable_message_to_all(Chatmessage)
+                for sender in SenderList:
+                    if IPRegistry[sender.address].disconnecting == False:
+                        sender.send_reliable_message(Chatmessage)
             else:
                 theplayer = ''
                 for player in PlayerList:
@@ -371,6 +377,7 @@ def ChangeMap(themap):
     global GameMode
     global ServerRotation2
     global chathistory
+    global jug
     chathistory = []
     HUDs = []
     found = False
@@ -391,9 +398,11 @@ def ChangeMap(themap):
             found = True
         except:
             pass
-    if GameMode == 'FFA' or GameMode == 'AIR':
+    if GameMode == 'FFA' or GameMode == 'AIR' or GameMode == 'JUG':
         EndLabel = HUDLabel('Match ends in:', (255,255,255), len(HUDs))
         EndTimer = HUDTimer(int(config['FFA']['max_time']) * 60, True, (255,255,255), len(HUDs))
+    if GameMode == 'JUG':
+        jug = Juggernaut()
     #for x in ServerRotation:
         #if themap == x[:-4]:
             #MapName = themap
@@ -475,22 +484,30 @@ def ChangeMap(themap):
             MapInfos.chunk.value = chunk
             MapInfos.map.value = chunkedmapstring[chunk]
             MapInfos.name.value = str(ServerRotation[posix])
-            server.send_reliable_message_to_all(MapInfos)
+            for sender in SenderList:
+                if IPRegistry[sender.address].disconnecting == False:
+                    sender.send_reliable_message(MapInfos)
             chunk += 1
         chunk = 0
 
         for platform in my_map.activepowerups:
             PwupMsg.id.value = my_map.powerups.index(platform)
             PwupMsg.active.value = True
-            server.send_reliable_message_to_all(PwupMsg)
+            for sender in SenderList:
+                if IPRegistry[sender.address].disconnecting == False:
+                    sender.send_reliable_message(PwupMsg)
         Chatmessage.id.value = 0
         Chatmessage.msg.value = str("  Changed map to: " + MapName)
         Chatmessage.placeholder.value = 100
-        server.send_reliable_message_to_all(Chatmessage)
+        for sender in SenderList:
+            if IPRegistry[sender.address].disconnecting == False:
+                sender.send_reliable_message(Chatmessage)
         Chatmessage.id.value = 0
         Chatmessage.msg.value = str("  Changed game mode to: " + GameMode)
         Chatmessage.placeholder.value = 101
-        server.send_reliable_message_to_all(Chatmessage)
+        for sender in SenderList:
+            if IPRegistry[sender.address].disconnecting == False:
+                sender.send_reliable_message(Chatmessage)
         for x in HUDs:
             x.declare()
 
@@ -500,7 +517,7 @@ server_cmd.start()
 global FPSCLOCK, running, mx, my, dtime, dtime_ms
 global RocketList, rocketdist, sx, sy
 global mapx, mapy, lolx, loly
-global reloadclock, dfps
+global reloadclock, dfps, jug
 mapstring = ''
 my_map = None
 reloadclock = 0
@@ -570,6 +587,90 @@ class Platform:
         self.timer = 0
         self.parent = None
         self.pwup = mode
+
+class Juggernaut:
+    def __init__(self):
+        self.juggernaut = None
+        self.jugtimer = float(config['JUG']['max_jugtime']) * 60
+        self.jugcounter = 0
+        try:
+            self.ChooseRandom()
+        except:
+            self.juggernaut = None
+
+    def update(self):
+        found = False
+        for player in PlayerList:
+            if player == self.juggernaut:
+                found = True
+        if found == False:
+            self.juggernaut = None
+        self.jugtimer -= dtime
+        if self.jugtimer <= 0 or self.juggernaut == None:
+            try:
+                self.ChooseRandom()
+            except:
+                self.juggernaut = None
+
+    def Promote(self):
+        try:
+            player = self.juggernaut
+            player.cacheddamage = 700 + 15 * 25
+            player.cachedvelocity = 15 + 15
+            player.cachedreloadspeed = 1500 - 15 * 50
+            player.cachedarmor = 15 * 0.03
+            player.cachedspeed = 1 + 15 * 0.1
+            player.cachedenergy = 0.1 + 15 * 0.1
+        except:
+            pass
+
+    def Demote(self):
+        try:
+            player = self.juggernaut
+            player.cacheddamage = 700 + player.damage * 25
+            player.cachedvelocity = 15 + player.weaponvelocity
+            player.cachedreloadspeed = 1500 - player.reloadspeed * 50
+            player.cachedarmor = player.armor * 0.03
+            player.cachedspeed = 1 + player.speed * 0.1
+            player.cachedenergy = 0.1 + player.energy * 0.1
+        except:
+            pass
+
+    def ChooseRandom(self):
+        global PlayerList
+        try:
+            PList = list(PlayerList)
+            PList.remove(self.juggernaut)
+        except:
+            Plist = PlayerList
+        self.Demote()
+        try:
+            self.juggernaut = random.choice(PList)
+        except:
+            self.juggernaut = random.choice(PlayerList)
+        Chatmessage.id.value = 0
+        Chatmessage.msg.value = str("  New juggernaut: " + self.juggernaut.name)
+        Chatmessage.placeholder.value = 103
+        for sender in SenderList:
+            if IPRegistry[sender.address].disconnecting == False:
+                sender.send_reliable_message(Chatmessage)
+        self.Promote()
+        self.jugtimer = float(config['JUG']['max_jugtime']) * 60
+        self.jugcounter += 1
+
+    def KillJuggernaut(self, killer):
+        killer.sore += 150
+        self.Demote()
+        self.juggernaut = killer
+        Chatmessage.id.value = 0
+        Chatmessage.msg.value = str("  New juggernaut: " + killer.name)
+        Chatmessage.placeholder.value = 102
+        for sender in SenderList:
+            if IPRegistry[sender.address].disconnecting == False:
+                sender.send_reliable_message(Chatmessage)
+        self.Promote()
+        self.jugcounter += 1
+        self.jugtimer = float(config['JUG']['max_jugtime']) * 60
 
 # The map class is for reading and displaying a map
 class Map:
@@ -771,7 +872,9 @@ class Playerz:
                                 my_map.deletedpowerups.append(platform)
                                 PwupMsg.id.value = my_map.powerups.index(platform)
                                 PwupMsg.active.value = False
-                                server.send_reliable_message_to_all(PwupMsg)
+                                for sender in SenderList:
+                                    if IPRegistry[sender.address].disconnecting == False:
+                                        sender.send_reliable_message(PwupMsg)
                         if platform.pwup == 1:
                             self.cachedspeed += 1
                             platform.parent = self
@@ -779,7 +882,9 @@ class Playerz:
                             my_map.deletedpowerups.append(platform)
                             PwupMsg.id.value = my_map.powerups.index(platform)
                             PwupMsg.active.value = False
-                            server.send_reliable_message_to_all(PwupMsg)
+                            for sender in SenderList:
+                                    if IPRegistry[sender.address].disconnecting == False:
+                                        sender.send_reliable_message(PwupMsg)
                         if platform.pwup == 2:
                             self.cachedarmor += 0.25
                             platform.parent = self
@@ -787,16 +892,21 @@ class Playerz:
                             my_map.deletedpowerups.append(platform)
                             PwupMsg.id.value = my_map.powerups.index(platform)
                             PwupMsg.active.value = False
-                            server.send_reliable_message_to_all(PwupMsg)
+                            for sender in SenderList:
+                                    if IPRegistry[sender.address].disconnecting == False:
+                                        sender.send_reliable_message(PwupMsg)
                 for player in PlayerList:
                     if player != self:
                         if player.shape == i:
-                            if player.position.y < self.position.y:
+                            if player.body.position.y < self.body.position.y and self.body.velocity.y < -0.01:
                                 self.kills += 1
                                 self.score += 100
                                 player.deaths += 1
                                 player.DieNow()
-                                killfeed.append((self.id, 'SQUISHED!', self.id, random.randint(0, 255)))
+                                killfeed.append((self.id, 'SQUISHED!', player.id, random.randint(0, 255)))
+                                if GameMode == 'JUG':
+                                    if player == jug.juggernaut:
+                                        jug.KillJuggernaut(self)
 
         if self.right == True:
             self.body.velocity += (self.cachedspeed*30,0)
@@ -818,7 +928,20 @@ class Playerz:
                         x.kills += 1
                         killfeed.append((x.id, 'BOMBS AWAY!', self.id, random.randint(0, 255)))
             else:
-                killfeed.append((self.id, 'IS NO MORE!', self.id, random.randint(0, 255)))
+                if GameMode == 'AIR':
+                    killfeed.append((self.id, 'IS NO MORE!', self.id, random.randint(0, 255)))
+            if GameMode == 'JUG' and self.lastdamage != None:
+                for x in PlayerList:
+                    if x.id == self.lastdamage:
+                        x.score += 100
+                        x.kills += 1
+                        if self == jug.juggernaut:
+                            jug.KillJuggernaut(x)
+            else:
+                if GameMode == 'JUG':
+                    killfeed.append((self.id, 'IS NO MORE!', self.id, random.randint(0, 255)))
+                    if self == jug.juggernaut:
+                        jug.ChooseRandom()
             self.DieNow()
             self.inAir = False
         self.body.velocity.x *= 0.95
@@ -895,18 +1018,20 @@ class Rocket:
                         diff = player.body.position - self.body.position + Vec2d(5,15)
                         length = diff.length
                         direc = diff.normalized()
-                        lol =(300 - length*7) * (self.parent.damage + 15)/75 * 4
+                        lol =(300.0 - length*7.0) * ((self.parent.cacheddamage - 700)/25 + 15)/75.0 * 4.0
                         if lol < 0:
                             lol = 0
                         direc *= lol
                         if GameMode != 'AIR':
                             player.body.apply_impulse(direc)
                         if player != self.parent:
-                            player.body.apply_impulse(direc*(101-p)/10)
-                            player.health -= direc.length / 7 * player.cachedarmor
+                            player.body.apply_impulse(direc*(101-player.health)/10.0)
+                            player.health -= direc.length / 7.0 * (1.0 - player.cachedarmor)
                             player.lastdamage = self.parent.id
                             if player.health <= 0:
                                 self.parent.kills += 1
+                                if player == jug.juggernaut:
+                                    jug.KillJuggernaut(self.parent)
                                 killfeed.append((self.parent.id, random.choice(expletiveslist), player.id, random.randint(0, 255)))
                             self.parent.score += direc.length / 7
                         if self in RocketList:
@@ -1053,7 +1178,9 @@ class HUDTimer:
         self.msg.setcountdown.value = True
         self.msg.state.value = False
         self.msg.countdown.value = self.countdown
-        server.send_reliable_message_to_all(self.msg)
+        for sender in SenderList:
+            if IPRegistry[sender.address].disconnecting == False:
+                sender.send_reliable_message(self.msg)
 
     def start(self):
         global server
@@ -1061,7 +1188,9 @@ class HUDTimer:
         self.msg.setcountdown.value = True
         self.msg.state.value = True
         self.msg.countdown.value = self.countdown
-        server.send_reliable_message_to_all(self.msg)
+        for sender in SenderList:
+            if IPRegistry[sender.address].disconnecting == False:
+                sender.send_reliable_message(self.msg)
 
     def update(self):
         global dtime
@@ -1077,7 +1206,9 @@ class HUDTimer:
         self.msg.color.value = json.dumps(self.color)
         self.msg.countdown.value = self.countdown
         self.msg.state.value = self.state
-        server.send_reliable_message_to_all(self.msg)
+        for sender in SenderList:
+            if IPRegistry[sender.address].disconnecting == False:
+                sender.send_reliable_message(self.msg)
 
     def declare(self):
         global server
@@ -1087,7 +1218,9 @@ class HUDTimer:
         self.msg.color.value = json.dumps(self.color)
         self.msg.countdown.value = self.countdown
         self.msg.state.value = self.state
-        server.send_reliable_message_to_all(self.msg)
+        for sender in SenderList:
+            if IPRegistry[sender.address].disconnecting == False:
+                sender.send_reliable_message(self.msg)
 
 class HUDLabel:
     def __init__(self, text, color, id):
@@ -1105,7 +1238,9 @@ class HUDLabel:
 
     def declare(self):
         global server
-        server.send_reliable_message_to_all(self.msg)
+        for sender in SenderList:
+            if IPRegistry[sender.address].disconnecting == False:
+                sender.send_reliable_message(self.msg)
 
 expletiveslist = ['eviscerated', 'pwned', 'dominated', 'splattered', 'blew up', 'exploded', 'BOOM!', 'POW!', 'slaughtered']
 killfeed = []
@@ -1179,29 +1314,32 @@ def custom_msghandler(sender, message):
         global my_map
         global HUDs
         if message.MessageTypeID == ArrowStatusMsg.MessageTypeID:
-            received_message = str(message.arrows.value)
-            #print sender.last_packet_sent_at
-            #print str(message.arrows.value)
-            IPRegistry[sender.address].a = message.gunorientation.value
-            IPRegistry[sender.address].mx = message.mx.value
-            if received_message[1] == '1':
-                IPRegistry[sender.address].right = True
-                #IPRegistry[sender.address].body.velocity += (IPRegistry[sender.address].cachedspeed*30,0)
-            else:
-                IPRegistry[sender.address].right = False
-            if received_message[0] == '1':
-                IPRegistry[sender.address].left = True
-                #IPRegistry[sender.address].body.velocity -= (IPRegistry[sender.address].cachedspeed*30,0)
-            else:
-                IPRegistry[sender.address].left = False
-            if received_message[2] == '1' and 0 <= IPRegistry[sender.address].body.velocity.y <= 0.01:
-                IPRegistry[sender.address].body.velocity += (0,600)
-            if received_message[3] == '1' and IPRegistry[sender.address].timer == IPRegistry[sender.address].cachedreloadspeed:
-                rocket = Rocket(IPRegistry[sender.address], IPRegistry[sender.address].a, message.mx.value, IPRegistry[sender.address].body.position)
-                IPRegistry[sender.address].lastshotid += 1
-                IPRegistry[sender.address].lastshot = rocket
-                #print len(RocketList)
-                #print 'lol'
+            try:
+                received_message = str(message.arrows.value)
+                #print sender.last_packet_sent_at
+                #print str(message.arrows.value)
+                IPRegistry[sender.address].a = message.gunorientation.value
+                IPRegistry[sender.address].mx = message.mx.value
+                if received_message[1] == '1':
+                    IPRegistry[sender.address].right = True
+                    #IPRegistry[sender.address].body.velocity += (IPRegistry[sender.address].cachedspeed*30,0)
+                else:
+                    IPRegistry[sender.address].right = False
+                if received_message[0] == '1':
+                    IPRegistry[sender.address].left = True
+                    #IPRegistry[sender.address].body.velocity -= (IPRegistry[sender.address].cachedspeed*30,0)
+                else:
+                    IPRegistry[sender.address].left = False
+                if received_message[2] == '1' and 0 <= IPRegistry[sender.address].body.velocity.y <= 0.01:
+                    IPRegistry[sender.address].body.velocity += (0,600)
+                if received_message[3] == '1' and IPRegistry[sender.address].timer == IPRegistry[sender.address].cachedreloadspeed:
+                    rocket = Rocket(IPRegistry[sender.address], IPRegistry[sender.address].a, message.mx.value, IPRegistry[sender.address].body.position)
+                    IPRegistry[sender.address].lastshotid += 1
+                    IPRegistry[sender.address].lastshot = rocket
+                    #print len(RocketList)
+                    #print 'lol'
+            except:
+                pass
         if message.MessageTypeID == PlayerInfo.MessageTypeID:
             mapstring = base64.b64encode(zlib.compress(json.dumps(pickle.loads(open(os.path.join(mypath, 'Server rotation', ServerRotation[posix]), 'r').read())),9))
             my_map = Map(str(ServerRotation[posix][0:-4]), open(os.path.join(mypath, 'Server rotation', ServerRotation[posix]), 'r').read())
@@ -1333,7 +1471,9 @@ def custom_msghandler(sender, message):
                 Chatmessage.id.value = message.id.value
                 Chatmessage.msg.value = str(message.msg.value)
                 Chatmessage.placeholder.value = message.placeholder.value
-                server.send_reliable_message_to_all(Chatmessage)
+                for sender in SenderList:
+                    if IPRegistry[sender.address].disconnecting == False:
+                        sender.send_reliable_message(Chatmessage)
                 for x in PlayerList:
                     if x.id == message.id.value:
                         chathistory.append(x.name+message.msg.value)
@@ -1387,9 +1527,12 @@ MapName = str(ServerRotation[posix][0:-4])
 
 GameMode = ServerRotation2[0][1]
 
-if GameMode == 'FFA' or GameMode == 'AIR':
+if GameMode == 'FFA' or GameMode == 'AIR' or GameMode == 'JUG':
     EndLabel = HUDLabel('Match ends in:', (255,255,255), len(HUDs))
     EndTimer = HUDTimer(int(config['FFA']['max_time']) * 60, True, (255,255,255), len(HUDs))
+
+if GameMode == 'JUG':
+    jug = Juggernaut()
 
 MaxPlayers = int(config['Game']['max_players'])
 print 'Max players: ' + str(MaxPlayers) + '\n'
@@ -1463,16 +1606,18 @@ while running:  # main game loop
     
         for x in killfeed:
             Killfeedmessage.kill.value = json.dumps(x)
-            server.send_reliable_message_to_all(Killfeedmessage)
+            for sender in SenderList:
+                if IPRegistry[sender.address].disconnecting == False:
+                    sender.send_reliable_message(Killfeedmessage)
             killfeed.remove(x)
 
         for player in PlayerList:
             player.move()
             #playerposlist.append((int(player.body.position.x), int(player.body.position.y)))
             if player.lastshotid != 0:
-                playerposlist.append((player.id, int(player.body.position.x), int(player.body.position.y), player.health, player.timer, player.a, player.mx, (player.lastshotid,player.lastshot.body.position.int_tuple,(player.lastshot.impulse.x,player.lastshot.impulse.y))))
+                playerposlist.append((player.id, int(player.body.position.x), int(player.body.position.y), player.health, float((player.timer+0.0)/(player.cachedreloadspeed+0.0)), player.a, player.mx, (player.lastshotid,player.lastshot.body.position.int_tuple,(player.lastshot.impulse.x,player.lastshot.impulse.y))))
             else:
-                playerposlist.append((player.id, int(player.body.position.x), int(player.body.position.y), player.health, player.timer, player.a, player.mx, (player.lastshotid,0,0)))
+                playerposlist.append((player.id, int(player.body.position.x), int(player.body.position.y), player.health, float((player.timer+0.0)/(player.cachedreloadspeed+0.0)), player.a, player.mx, (player.lastshotid,0,0)))
 
         PlayerPositionss.serializedplayerpositions.value = json.dumps(playerposlist)
     
@@ -1527,6 +1672,19 @@ while running:  # main game loop
                 ChangeMap(posix)
                 maptimer = 0
 
+        if GameMode == 'JUG':
+            if jug.jugcounter > float(config['JUG']['max_jugs']):
+                posix += 1
+                if posix >= len(ServerRotation):
+                    posix = 0
+                ChangeMap(posix)
+            if maptimer > 60 * float(config['JUG']['max_time']):
+                posix += 1
+                if posix >= len(ServerRotation):
+                    posix = 0
+                ChangeMap(posix)
+                maptimer = 0
+            jug.update()
 
         for platform in my_map.deletedpowerups:
             platform.timer += dtime
@@ -1541,7 +1699,9 @@ while running:  # main game loop
                 my_map.deletedpowerups.remove(platform)
                 PwupMsg.id.value = my_map.powerups.index(platform)
                 PwupMsg.active.value = True
-                server.send_reliable_message_to_all(PwupMsg)
+                for sender in SenderList:
+                    if IPRegistry[sender.address].disconnecting == False:
+                        sender.send_reliable_message(PwupMsg)
     
         for rocket in RocketList:
             rocket.DisplayRocket()

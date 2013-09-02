@@ -868,11 +868,11 @@ class Playerz:
         if self.timer > self.cachedreloadspeed - 1:
             self.timer = self.cachedreloadspeed
         float(self.timer)
-        self.timer += dtime_ms
-        timerbuffer = self.timer
-        if timerbuffer > self.cachedreloadspeed:
-            timerbuffer = self.cachedreloadspeed
-        pygame.draw.rect(DISPLAYSURF, yellow, Rect((rx - 18,ry - 9),(78*(float(timerbuffer/float(self.cachedreloadspeed))), 6)))
+        #self.timer += dtime_ms
+        #timerbuffer = self.timer
+        #if timerbuffer > self.cachedreloadspeed:
+            #timerbuffer = self.cachedreloadspeed
+        pygame.draw.rect(DISPLAYSURF, yellow, Rect((rx - 18,ry - 9),(float(78.0*self.timer), 6)))
 
     def displayBot(self):
         self.hitbox.topleft = (self.position.x + 379, self.position.y + 600)
@@ -897,7 +897,7 @@ class Playerz:
 
     def displayOther(self):
         rx = self.body.position.x
-        print self.body.velocity
+        #print self.body.velocity
         ry = 600 - self.body.position.y
         xy = 600 - my_player.body.position.y
         #DISPLAYSURF.blit(PLAYERIMAGES[self.colour], (rx,ry))
@@ -916,10 +916,10 @@ class Playerz:
         if self.timer > self.cachedreloadspeed - 1:
             self.timer = self.cachedreloadspeed
         float(self.timer)
-        timerbuffer = self.timer
-        if timerbuffer > self.cachedreloadspeed:
-            timerbuffer = self.cachedreloadspeed
-        pygame.draw.rect(DISPLAYSURF, yellow, Rect((rx - 18 - my_player.body.position.x + 379,ry - 9 - xy + 279),(78*(float(timerbuffer/float(self.cachedreloadspeed))), 6)))
+        #timerbuffer = self.timer
+        #if timerbuffer > self.cachedreloadspeed:
+            #timerbuffer = self.cachedreloadspeed
+        pygame.draw.rect(DISPLAYSURF, yellow, Rect((rx - 18 - my_player.body.position.x + 379,ry - 9 - xy + 279),(78.0*self.timer, 6)))
 
         if self.mx == False and self.body.velocity.x <= -0.7 and self.body.velocity.y <= 0.1:
             #ScientistLeft.blit(DISPLAYSURF, (379,279))
@@ -1041,10 +1041,10 @@ class Rocket:
             self.body.lol = Vec2d(self.parent.cachedvelocity, 0)
             if ((self.body.lol.rotated(self.angle)*20)+(self.parent.body.velocity*0.95)).length > (self.body.lol.rotated(self.angle)*20).length:
                 self.body.apply_impulse((self.body.lol.rotated(self.angle)*20)+(self.parent.body.velocity*0.95))
-                print self.parent.body.velocity
+                #print self.parent.body.velocity
             else:
                 self.body.apply_impulse((self.body.lol.rotated(self.angle)*20))
-                print 'LOLZ'
+                #print 'LOLZ'
         if mx < 400:
             self.angle = math.atan(self.a)
             #print self.angle
@@ -1053,7 +1053,7 @@ class Rocket:
                 self.body.apply_impulse((self.body.lol.rotated(self.angle)*20)+(self.parent.body.velocity*0.95))
             else:
                 self.body.apply_impulse((self.body.lol.rotated(self.angle)*20))
-                print 'LOLZ'
+                #print 'LOLZ'
         #self.shape.group = 1
         self.shape.sensor = True
         #self.body.angle_degrees = self.angle
@@ -1131,11 +1131,7 @@ class OtherRocket:
         #print self.body.position - self.oldpos
         if space.segment_query_first(self.oldpos, self.body.position) != None or len(space.shape_query(self.shape)) > 0:
             for i in space.shape_query(self.shape):
-                if i in my_map.spawnlist:
-                    print 'spawn ignored'
-                elif i in my_map.poweruplist:
-                    print 'pwup ignored'
-                elif i not in my_map.spawnlist and i not in my_map.poweruplist:
+                if i not in my_map.spawnlist and i not in my_map.poweruplist:
                     #print space.shape_query(self.shape)
                     #print space.segment_query_first(self.oldpos, self.body.position)
                     self.ExploBlueCopy = EXPLOS[self.parent.colour].getCopy()
@@ -1407,7 +1403,7 @@ def custom_msghandler(sender, message):
             global mapstring
             global my_HUD
             mapstring += message.map.value
-            print message.chunk.value
+            #print message.chunk.value
             if message.chunk.value == 0:
                 my_HUD = HUD()
             if message.chunk.value + 1 == message.chunks.value:
@@ -1421,6 +1417,7 @@ def custom_msghandler(sender, message):
                 ID, posx, posy, health, timer, a, mx, newbullet = x
                 if ID == my_player.id:
                     my_player.health = health
+                    my_player.timer = float(timer)
                     my_player.body.position = Vec2d(posx, posy)
                     my_player.body.velocity = Vec2d(posx, posy) - my_player.oldvelocity
                     my_player.oldvelocity = Vec2d(posx, posy)
@@ -2262,10 +2259,11 @@ while running:  # main game loop
             DISPLAYSURF.blit(killmsg, (800 - 5 - victim.get_width() - killmsg.get_width(), 5+25*y))
             DISPLAYSURF.blit(victim, (800 - victim.get_width(),5+25*y))
             y += 1
-    
+
+        if len(chathistory) > 5:
+            chathistory.remove(chathistory[0])
+
         if displaychat == True:
-            if len(chathistory) > 5:
-                chathistory.remove(chathistory[0])
             letter = ask()
             if letter != None:
                 chat+=letter
