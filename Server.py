@@ -151,7 +151,7 @@ class CLI(cmd.Cmd):
     def do_player(self, line):
         "Opens up the player management menu"
         global player
-        print '\nPlayer menu active.\nAvailable commands: player, kick, send \n'
+        print '\nPlayer menu active.\nAvailable commands: players, kick, send \n'
         player = True
 
     def do_map(self, line):
@@ -197,6 +197,7 @@ class CLI(cmd.Cmd):
         "Displays current server stats"
         global GameMode
         global maptimer
+        global CurrentPlayers
         print '\nServer name: ' + ServerName
         print 'Map: ' + MapName
         print 'Game mode: ' + GameMode
@@ -659,7 +660,7 @@ class Juggernaut:
         self.jugcounter += 1
 
     def KillJuggernaut(self, killer):
-        killer.sore += 150
+        killer.score += 150
         self.Demote()
         self.juggernaut = killer
         Chatmessage.id.value = 0
@@ -942,6 +943,8 @@ class Playerz:
                     killfeed.append((self.id, 'IS NO MORE!', self.id, random.randint(0, 255)))
                     if self == jug.juggernaut:
                         jug.ChooseRandom()
+            if GameMode == 'FFA':
+                killfeed.append((self.id, 'IS NO MORE!', self.id, random.randint(0, 255)))
             self.DieNow()
             self.inAir = False
         self.body.velocity.x *= 0.95
@@ -1018,24 +1021,27 @@ class Rocket:
                         diff = player.body.position - self.body.position + Vec2d(5,15)
                         length = diff.length
                         direc = diff.normalized()
-                        lol =(300.0 - length*7.0) * ((self.parent.cacheddamage - 700)/25 + 15)/75.0 * 4.0
+                        lol =(300.0 - length*7.0) * ((self.parent.cacheddamage - 700.0)/25.0 + 15)/75.0 * 4.0
                         if lol < 0:
                             lol = 0
                         direc *= lol
                         if GameMode != 'AIR':
                             player.body.apply_impulse(direc)
                         if player != self.parent:
-                            player.body.apply_impulse(direc*(101-player.health)/10.0)
+                            if GameMode == 'AIR':
+                                player.body.apply_impulse(direc*(101-player.health)/10.0)
                             player.health -= direc.length / 7.0 * (1.0 - player.cachedarmor)
                             player.lastdamage = self.parent.id
                             if player.health <= 0:
                                 self.parent.kills += 1
-                                if player == jug.juggernaut:
-                                    jug.KillJuggernaut(self.parent)
+                                if GameMode == 'JUG':
+                                    if player == jug.juggernaut:
+                                        jug.KillJuggernaut(self.parent)
                                 killfeed.append((self.parent.id, random.choice(expletiveslist), player.id, random.randint(0, 255)))
                             self.parent.score += direc.length / 7
                         if self in RocketList:
                             RocketList.remove(self)
+                            #space.remove(self.body, self.shape)
         self.oldpos = self.body.position.int_tuple
 
 class ArrowStatusMsg(legume.messages.BaseMessage):
@@ -1265,7 +1271,7 @@ print 'Connected to: ' + str(config['Connection']['bind_IP']) + '    Port: 6385'
 #    print 'Connected to: ' + str(int_ip) + '    Port: 6385'
 
 t1 = FetchUrls(server)
-t1.start()
+#t1.start()
 
 server.setTimeout(5)
 IPRegistry = {}
@@ -1332,6 +1338,7 @@ def custom_msghandler(sender, message):
                     IPRegistry[sender.address].left = False
                 if received_message[2] == '1' and 0 <= IPRegistry[sender.address].body.velocity.y <= 0.01:
                     IPRegistry[sender.address].body.velocity += (0,600)
+                    print IPRegistry[sender.address], sender.address
                 if received_message[3] == '1' and IPRegistry[sender.address].timer == IPRegistry[sender.address].cachedreloadspeed:
                     rocket = Rocket(IPRegistry[sender.address], IPRegistry[sender.address].a, message.mx.value, IPRegistry[sender.address].body.position)
                     IPRegistry[sender.address].lastshotid += 1
@@ -1349,6 +1356,7 @@ def custom_msghandler(sender, message):
 
             spawnpoint = my_map.spawns[random.randint(0, len(my_map.spawns)-1)]
             clientplayer = Playerz(from_pygame((spawnpoint.position_x+65, spawnpoint.position_y+65)), message.colour.value, message.name.value, 100, euclid.Vector2(0, 0))
+            clientplayer.disconnecting = True
 
             clientplayer.reloadspeed = message.reload.value
             clientplayer.weaponvelocity = message.speedbullet.value
@@ -1433,6 +1441,7 @@ def custom_msghandler(sender, message):
             
             for x in HUDs:
                 x.declare()
+            clientplayer.disconnecting = False
         if message.MessageTypeID == DisconnectNotice.MessageTypeID:
             try:
                 if IPRegistry[sender.address] in PlayerList:
@@ -1594,9 +1603,9 @@ def on_connectcheck(sender, args):
 server.OnConnectRequest += on_connectcheck
 
 while running:  # main game loop
-    #server.update()
     #with lock:
     try:
+        server.update()
 
         if changemap != '':
             ChangeMap(changemap)

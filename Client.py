@@ -1411,30 +1411,33 @@ def custom_msghandler(sender, message):
                 print 'Map received'
                 mapstring = ''
         if message.MessageTypeID == PlayerPositions.MessageTypeID:
-            #playernamelist = pickle.loads(str(message.serializedplayerlist.value))
-            msg = json.loads(str(message.serializedplayerpositions.value))
-            for x in msg:
-                ID, posx, posy, health, timer, a, mx, newbullet = x
-                if ID == my_player.id:
-                    my_player.health = health
-                    my_player.timer = float(timer)
-                    my_player.body.position = Vec2d(posx, posy)
-                    my_player.body.velocity = Vec2d(posx, posy) - my_player.oldvelocity
-                    my_player.oldvelocity = Vec2d(posx, posy)
-                    id, startpos, impulse = newbullet
-                    if id != 0 and id != my_player.alreadycreated:
-                        rocket = OtherRocket(my_player, Vec2d(impulse), Vec2d(startpos), True)
-                        my_player.alreadycreated = id
-                else:
-                    ID, otherplayers[ID].body.position.x, otherplayers[ID].body.position.y, otherplayers[ID].health, otherplayers[ID].timer, otherplayers[ID].a, otherplayers[ID].mx, newbullet = x
-                    otherplayers[ID].body.velocity = Vec2d(posx, posy) - otherplayers[ID].oldvelocity
-                    otherplayers[ID].oldvelocity = Vec2d(posx, posy)
-                    #class OtherRocket:
-                    #def __init__(self, parent, impulse, start_pos):
-                    id, startpos, impulse = newbullet
-                    if id != 0 and id != otherplayers[ID].alreadycreated:
-                        rocket = OtherRocket(otherplayers[ID], Vec2d(impulse), Vec2d(startpos), False)
-                        otherplayers[ID].alreadycreated = id
+            try:
+                #playernamelist = pickle.loads(str(message.serializedplayerlist.value))
+                msg = json.loads(str(message.serializedplayerpositions.value))
+                for x in msg:
+                    ID, posx, posy, health, timer, a, mx, newbullet = x
+                    if ID == my_player.id:
+                        my_player.health = health
+                        my_player.timer = float(timer)
+                        my_player.body.position = Vec2d(posx, posy)
+                        my_player.body.velocity = Vec2d(posx, posy) - my_player.oldvelocity
+                        my_player.oldvelocity = Vec2d(posx, posy)
+                        id, startpos, impulse = newbullet
+                        if id != 0 and id != my_player.alreadycreated:
+                            rocket = OtherRocket(my_player, Vec2d(impulse), Vec2d(startpos), True)
+                            my_player.alreadycreated = id
+                    else:
+                        ID, otherplayers[ID].body.position.x, otherplayers[ID].body.position.y, otherplayers[ID].health, otherplayers[ID].timer, otherplayers[ID].a, otherplayers[ID].mx, newbullet = x
+                        otherplayers[ID].body.velocity = Vec2d(posx, posy) - otherplayers[ID].oldvelocity
+                        otherplayers[ID].oldvelocity = Vec2d(posx, posy)
+                        #class OtherRocket:
+                        #def __init__(self, parent, impulse, start_pos):
+                        id, startpos, impulse = newbullet
+                        if id != 0 and id != otherplayers[ID].alreadycreated:
+                            rocket = OtherRocket(otherplayers[ID], Vec2d(impulse), Vec2d(startpos), False)
+                            otherplayers[ID].alreadycreated = id
+            except:
+                pass
             #print playerpositions[0]
             #x = 0
             #for name in playernamelist:
