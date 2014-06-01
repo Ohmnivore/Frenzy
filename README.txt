@@ -1,6 +1,6 @@
 UPDATE
 
-I have abandoned this project. I decided to move on to
+I have abandoned this version, but made a better one. I decided to move on to
 Haxe and HaxeFlixel because Python is lame for game development.
 So here's the newer version: https://github.com/Ohmnivore/SkullRush
 
