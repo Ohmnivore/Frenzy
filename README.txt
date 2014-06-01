@@ -1,3 +1,9 @@
+UPDATE
+
+I have abandoned this project. I decided to move on to
+Haxe and HaxeFlixel because I just hate Adobe AIR.
+So here's the newer version: http://skullrush.elementfx.com/smf/
+
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 \\READ THIS - VERY IMPORTANT LINKS AT THE BOTTOM + Instructions\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -76,10 +82,10 @@ same format and name for any replacement.
                         ---
 
 Frenzy is an online multiplayer 2D platformer-shooter.
-Yeah, it’s that cool. Written in Python using
-PyGame, and Legume, it’s licensed under the
+Yeah, itï¿½s that cool. Written in Python using
+PyGame, and Legume, itï¿½s licensed under the
 Creative Commons Attribution Non-Commercial
-3.0 Unported license. It’s inspired by many 3D
+3.0 Unported license. Itï¿½s inspired by many 3D
 shooters, mainly Tribes, Quake, early CoDs and my
 imagination. I encourage people to expirement with
 the source code and to expand the community. Like
@@ -87,17 +93,17 @@ all online games, it depends on an active user base.
 Frenzy supports custom maps, fully customized servers,
 custom player stats, and custom art skins and sound
 skins.
-It’s coming along. Beta release
+Itï¿½s coming along. Beta release
 is planned somewhere around summer 2013.
 Useful links:
 Master server (viewable in-browser)
 http://frenzyms.appspot.com/
-Official website – self-explanatory
+Official website ï¿½ self-explanatory
 http://lasthazard.ohmnivore.elementfx.com
 This work is licensed under the Creative Commons Attribution-NonCommercial 3.0 Unported License.
 To view a copy of this license, visit
 http://creativecommons.org/licenses/by-nc/3.0/
-My blog – a couple of posts about the game and stuff related
+My blog ï¿½ a couple of posts about the game and stuff related
 to robotics
 http://www.ohmnivore.elementfx.com
 Google group
