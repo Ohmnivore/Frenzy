@@ -2,7 +2,7 @@ UPDATE
 
 I have abandoned this project. I decided to move on to
 Haxe and HaxeFlixel because Python is lame for game development.
-So here's the newer version: http://skullrush.elementfx.com/smf/
+So here's the newer version: https://github.com/Ohmnivore/SkullRush
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 \\READ THIS - VERY IMPORTANT LINKS AT THE BOTTOM + Instructions\\
